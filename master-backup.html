@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: arial, sans-serif;
+            background: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: flex-end;
+            padding: 20px;
+            font-size: 13px;
+        }
+
+        .header a {
+            color: #222;
+            text-decoration: none;
+            margin-left: 15px;
+            padding: 5px 10px;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+
+        .header a:hover {
+            background-color: #f8f9fa;
+        }
+
+        .apps-button {
+            background: none;
+            border: none;
+            padding: 5px;
+            margin-left: 15px;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+
+        .apps-button:hover {
+            background-color: #f8f9fa;
+        }
+
+        .sign-in-btn {
+            background: #1a73e8;
+            color: white;
+            padding: 9px 23px;
+            border-radius: 4px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            margin-left: 15px;
+            transition: background-color 0.2s, box-shadow 0.2s;
+        }
+
+        .sign-in-btn:hover {
+            background: #2b7de9;
+            box-shadow: 0 1px 2px 0 rgba(66,133,244,0.3), 0 1px 3px 1px rgba(66,133,244,0.15);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .google-logo {
+            height: 92px;
+            margin-bottom: 30px;
+            margin-top: -50px;
+        }
+
+        .search-container {
+            width: 100%;
+            max-width: 584px;
+            margin: 0 auto;
+        }
+
+        .search-box {
+            position: relative;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 584px;
+        }
+
+        .search-input {
+            width: 100%;
+            height: 44px;
+            padding: 10px 20px 10px 44px;
+            font-size: 16px;
+            border: 1px solid #dfe1e5;
+            border-radius: 24px;
+            outline: none;
+            background: #fff;
+            transition: box-shadow 0.2s;
+        }
+
+        .search-input:hover {
+            box-shadow: 0 1px 6px rgba(32,33,36,.28);
+            border-color: rgba(223,225,229,0);
+        }
+
+        .search-input:focus {
+            box-shadow: 0 1px 6px rgba(32,33,36,.28);
+            border-color: rgba(223,225,229,0);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9aa0a6;
+            font-size: 20px;
+            pointer-events: none;
+        }
+
+        .voice-search {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            color: #4285f4;
+            font-size: 24px;
+        }
+
+        .search-buttons {
+            display: flex;
+            justify-content: center;
+            margin-top: 23px;
+        }
+
+        .search-btn {
+            background: #f8f9fa;
+            border: 1px solid #f8f9fa;
+            border-radius: 4px;
+            color: #3c4043;
+            font-size: 14px;
+            margin: 11px 4px;
+            padding: 0 16px;
+            line-height: 27px;
+            height: 36px;
+            min-width: 54px;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            transition: box-shadow 0.1s, background-color 0.1s, border-color 0.1s;
+        }
+
+        .search-btn:hover {
+            box-shadow: 0 1px 1px rgba(0,0,0,.1);
+            background-color: #f8f9fa;
+            border: 1px solid #dadce0;
+            color: #202124;
+        }
+
+        
+        
+        .footer {
+            background: #f2f2f2;
+            border-top: 1px solid #e4e4e4;
+            padding: 15px 20px;
+            font-size: 14px;
+            color: #70757a;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 30px;
+        }
+
+        .footer-links a {
+            color: #70757a;
+            text-decoration: none;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        .instructions {
+            text-align: center;
+            margin-top: 20px;
+            color: #5f6368;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .search-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .search-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .search-loading {
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4285f4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .search-loading-text {
+            font-size: 16px;
+            color: #5f6368;
+            margin-bottom: 10px;
+        }
+
+        .search-query {
+            font-size: 18px;
+            font-weight: 500;
+            color: #202124;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+        
+    <div class="header">
+        <a href="https://mail.google.com/mail/?ogbl">Gmail</a>
+        <a href="https://www.google.cl/imghp?hl=es-419&ogbl">Imágenes</a>
+        <button class="apps-button" aria-label="Aplicaciones de Google">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6,8c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM12,20c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM6,20c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM6,14c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM12,14c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM16,6c0,1.1 0.9,2 2,2s2,-0.9 2,-2 -0.9,-2 -2,-2 -2,0.9 -2,2zM12,8c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM18,14c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM18,20c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2z"/>
+            </svg>
+        </button>
+        <button class="sign-in-btn">Iniciar sesión</button>
+    </div>
+    
+    <div class="main-content">
+        <img class="google-logo" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjc2IiBoZWlnaHQ9IjkyIiB2aWV3Qm94PSIwIDAgMjc2IDkyIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNMTM4IDY5LjI1QzEwMS4zIDY5LjI1IDc0LjI1IDQ2LjM1IDc0LjI1IDIzLjc1Qzc0LjI1IDE0LjU1IDc3LjM1IDYuNSA4Mi4yNSAwLjc1Qzg3LjI1IC01LjA1IDk0LjM1IC04LjE1IDEwMyAtOC4xNUMxMTEuNjUgLTguMTUgMTE5LjU1IC01LjA1IDEyNi4zNSAwLjc1QzEzMy4xNSA2LjU1IDEzOC4xNSAxNC41NSAxMzguMTUgMjMuNzVDMTM4LjE1IDQ2LjM1IDExMC44IDY5LjI1IDEzOCA2OS4yNVoiIGZpbGw9IiM0Mjg1RjQiLz4KPHBhdGggZD0iTTEzOCA2OS4yNUMxMTAuOCA2OS4yNSA4My43NSA0Ni4zNSA4My43NSAyMy43NUM4My43NSAxNC41NSA4Ni44NSA2LjUgOTEuNzUgMC43NUM5Ni43NSAtNS4wNSAxMDMuODUgLTguMTUgMTEyLjUgLTguMTVDMTIxLjE1IC04LjE1IDEyOS4wNSAtNS4wNSAxMzUuODUgMC43NUMxNDIuNjUgNi41NSAxNDcuNjUgMTQuNTUgMTQ3LjY1IDIzLjc1QzE0Ny42NSA0Ni4zNSAxMjAuMyA2OS4yNSAxMzggNjkuMjVaIiBmaWxsPSIjMzQ4NUYzIi8+CjxwYXRoIGQ9Ik0xMzggNjkuMjVDMTEwLjggNjkuMjUgODMuNzUgNDYuMzUgODMuNzUgMjMuNzVIODMuNzVDMTQ1LjU1IDIzLjc1IDE0NS41NSA0Ni4zNSAxMzggNjkuMjVaIiBmaWxsPSIjRkJCQzA0Ii8+CjxwYXRoIGQ9Ik0xMzggNjkuMjVDMTEwLjggNjkuMjUgODMuNzUgNDYuMzUgODMuNzUgMjMuNzVIODMuNzVDMTU0LjU1IDIzLjc1IDE1NC41NSA0Ni4zNSAxMzggNjkuMjVaIiBmaWxsPSIjRUE0MzM1Ii8+CjxwYXRoIGQ9Ik0xMzggNjkuMjVDMTEwLjggNjkuMjUgODMuNzUgNDYuMzUgODMuNzUgMjMuNzVIODMuNzVDMTU0LjU1IDIzLjc1IDE1NC41NSA0Ni4zNSAxMzggNjkuMjVaIiBmaWxsPSIjRUE0MzM1Ii8+Cjwvc3ZnPgo=" alt="Google">
+        
+        <div class="search-container">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    id="searchInput" 
+                    placeholder="Presiona '.' para activar modo secreto..."
+                    autocomplete="off"
+                >
+                <button class="voice-search" aria-label="Búsqueda por voz">
+                    🎤
+                </button>
+            </div>
+            
+            <div class="search-buttons">
+                <button class="search-btn" id="searchBtn">Buscar con Google</button>
+                <button class="search-btn">Voy a tener suerte</button>
+            </div>
+            
+                    </div>
+        
+        <div class="instructions">
+            <div><strong>Control:</strong> Presiona '.' para activar/desactivar modo secreto</div>
+            <div><strong>Buscar:</strong> Escribe el nombre de la canción y presiona Enter</div>
+            <div><strong>Espectador:</strong> Abre /viewer en otro dispositivo</div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="https://www.google.cl/intl/es-419/about.html">Todo acerca de Google</a>
+                <a href="https://www.google.cl/intl/es-419/ads/">Publicidad</a>
+                <a href="https://www.google.cl/services/">Soluciones Empresariales</a>
+            </div>
+            <div class="footer-links">
+                <a href="https://www.google.cl/intl/es-419/policies/privacy/">Privacidad</a>
+                <a href="https://www.google.cl/intl/es-419/policies/terms/">Condiciones</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search distraction overlay -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-loading">
+            <div class="search-spinner"></div>
+            <div class="search-loading-text">Buscando en Google...</div>
+            <div class="search-query" id="searchQueryDisplay"></div>
+        </div>
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const searchOverlay = document.getElementById('searchOverlay');
+        const searchQueryDisplay = document.getElementById('searchQueryDisplay');
+        
+        let secretMode = false;
+        let songQuery = '';
+        let lastDotTime = 0;
+        const DOT_TIMEOUT = 300; // 300ms between dots for toggle
+        let typewriterText = 'Analizando tendencias musicales y frecuencias cerebrales actuales...';
+        let typewriterIndex = 0;
+        let musicSent = false; // Track if music was already sent
+        let clientId = 'master-' + Date.now();
+        
+        // HTTP polling function
+        async function sendMusicEvent(musicData) {
+            console.log('Sending music event:', musicData);
+            try {
+                const response = await fetch('/api/play-music', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(musicData)
+                });
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log('Music event sent successfully:', result);
+                return result;
+            } catch (error) {
+                console.error('Error sending music event:', error);
+                return { success: false, error: error.message };
+            }
+        }
+        
+        // Heartbeat function
+        async function sendHeartbeat() {
+            try {
+                await fetch('/api/heartbeat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ clientId: clientId })
+                });
+            } catch (error) {
+                console.error('Heartbeat error:', error);
+            }
+        }
+        
+        // Start heartbeat
+        setInterval(sendHeartbeat, 30000); // Every 30 seconds
+        
+        console.log('APPM Master initialized with HTTP polling');
+        
+        // Handle input events
+        searchInput.addEventListener('keydown', (e) => {
+            const currentTime = Date.now();
+            
+            if (e.key === '.') {
+                e.preventDefault();
+                
+                // Check if this is a quick dot press (for toggle)
+                if (currentTime - lastDotTime < DOT_TIMEOUT) {
+                    toggleSecretMode();
+                    searchInput.value = '';
+                    songQuery = '';
+                    typewriterIndex = 0;
+                } else {
+                    // Single dot - start secret mode or add to query
+                    if (!secretMode) {
+                        activateSecretMode();
+                    } else {
+                        songQuery += '.';
+                        if (typewriterIndex < typewriterText.length) {
+                            typewriterIndex++;
+                            updateTypewriterDisplay();
+                        }
+                    }
+                }
+                
+                lastDotTime = currentTime;
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSearch();
+            } else if (secretMode && e.key.length === 1) {
+                // In secret mode, capture all keystrokes and show typewriter effect
+                songQuery += e.key;
+                if (typewriterIndex < typewriterText.length) {
+                    typewriterIndex++;
+                    updateTypewriterDisplay();
+                }
+            } else if (!secretMode && e.key.length === 1) {
+                // Normal mode - regular input
+                songQuery += e.key;
+                searchInput.value = songQuery;
+            } else if (e.key === 'Backspace') {
+                e.preventDefault();
+                if (songQuery.length > 0) {
+                    songQuery = songQuery.slice(0, -1);
+                    if (!secretMode) {
+                        searchInput.value = songQuery;
+                    } else {
+                        if (typewriterIndex > 0) {
+                            typewriterIndex--;
+                            updateTypewriterDisplay();
+                        }
+                    }
+                }
+            }
+        });
+        
+        function activateSecretMode() {
+            secretMode = true;
+            typewriterIndex = 0;
+            musicSent = false;
+            updateTypewriterDisplay();
+        }
+        
+        function toggleSecretMode() {
+            secretMode = !secretMode;
+            if (secretMode) {
+                activateSecretMode();
+            } else {
+                deactivateSecretMode();
+            }
+        }
+        
+        function deactivateSecretMode() {
+            secretMode = false;
+            searchInput.value = songQuery;
+        }
+        
+        function updateTypewriterDisplay() {
+            if (secretMode) {
+                searchInput.value = typewriterText.substring(0, typewriterIndex);
+            }
+        }
+        
+        function handleSearch() {
+            if (songQuery.trim()) {
+                if (secretMode) {
+                    if (!musicSent) {
+                        // First Enter: complete typewriter text and send music
+                        typewriterIndex = typewriterText.length;
+                        updateTypewriterDisplay();
+                        
+                        setTimeout(() => {
+                            console.log('Enviando música:', songQuery);
+                            sendMusicEvent({
+                                query: songQuery.trim(),
+                                timestamp: new Date().toISOString()
+                            });
+                            musicSent = true;
+                        }, 500);
+                    } else {
+                        // Second Enter: search trends on Google
+                        const trendsUrl = `https://www.google.com/search?q=${encodeURIComponent('tendencias musicales actuales')}`;
+                        searchQueryDisplay.textContent = 'tendencias musicales actuales';
+                        searchOverlay.classList.add('active');
+                        
+                        setTimeout(() => {
+                            window.location.href = trendsUrl;
+                            searchOverlay.classList.remove('active');
+                            
+                            // Reset for next search
+                            songQuery = '';
+                            searchInput.value = '';
+                            typewriterIndex = 0;
+                            musicSent = false;
+                        }, 2000);
+                    }
+                } else {
+                    // Normal mode: show distraction and perform Google search
+                    searchQueryDisplay.textContent = songQuery.trim();
+                    searchOverlay.classList.add('active');
+                    
+                    setTimeout(() => {
+                        const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(songQuery.trim())}`;
+                        window.location.href = googleSearchUrl;
+                        
+                        // Hide overlay and clear input after searching
+                        searchOverlay.classList.remove('active');
+                        songQuery = '';
+                        searchInput.value = '';
+                    }, 2000);
+                }
+            }
+        }
+        
+        // Search button click handler
+        document.getElementById('searchBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            handleSearch();
+        });
+        
+        // Prevent form submission
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
