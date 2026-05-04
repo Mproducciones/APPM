@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espectador</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .container {
+            text-align: center;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .calibrating-text {
+            font-size: 24px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+            opacity: 0.9;
+            animation: fadeInOut 3s ease-in-out infinite;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.9; }
+            50% { opacity: 0.4; }
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 30px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4caf50;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { 
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% { 
+                transform: scale(1.2);
+                opacity: 0.7;
+            }
+        }
+
+        .status-text {
+            font-size: 16px;
+            font-weight: 400;
+        }
+
+        .music-info {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+            margin-top: 30px;
+        }
+
+        .music-info.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .music-title {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .music-subtitle {
+            font-size: 18px;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .video-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 90%;
+            max-width: 800px;
+            aspect-ratio: 16/9;
+        }
+
+        .video-wrapper iframe {
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+        }
+
+        .video-controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .control-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #ff0000, #cc0000);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 0, 0, 0.3);
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 0, 0, 0.4);
+        }
+
+        
+        .connection-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+        }
+
+        .connection-status.connected {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+        }
+
+        .connection-status.disconnected {
+            background: rgba(244, 67, 54, 0.3);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+        }
+
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: float 10s infinite linear;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .device-hint {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px;
+            opacity: 0.6;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <div class="connection-status" id="connectionStatus">Conectando...</div>
+    
+    <div class="container">
+        <div class="status-indicator">
+            <div class="status-dot"></div>
+            <span class="status-text">Esperando señal</span>
+        </div>
+        
+        <div class="calibrating-text" id="calibratingText">
+            Calibrando sensores... Mantenga el dispositivo boca abajo
+        </div>
+        
+        <div class="music-info" id="musicInfo">
+            <div class="music-title" id="musicTitle">Canción detectada</div>
+            <div class="music-subtitle" id="musicSubtitle">Voltea el celular para reproducir</div>
+        </div>
+        
+        <div class="video-container" id="videoContainer" style="display: none;">
+            <div class="video-wrapper">
+                <iframe 
+                    id="youtubePlayer"
+                    width="560" 
+                    height="315" 
+                    src="" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen>
+                </iframe>
+            </div>
+            <div class="video-controls">
+                <button class="control-btn" id="playPauseBtn">⏸️ Pausar</button>
+                <button class="control-btn" id="closeVideoBtn">❌ Cerrar</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="device-hint">
+        📱 Mantén el dispositivo en posición vertical para mejor experiencia
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        const socket = io();
+        const connectionStatus = document.getElementById('connectionStatus');
+        const calibratingText = document.getElementById('calibratingText');
+        const musicInfo = document.getElementById('musicInfo');
+        const musicTitle = document.getElementById('musicTitle');
+        const musicSubtitle = document.getElementById('musicSubtitle');
+        const particles = document.getElementById('particles');
+        const videoContainer = document.getElementById('videoContainer');
+        const youtubePlayer = document.getElementById('youtubePlayer');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const closeVideoBtn = document.getElementById('closeVideoBtn');
+        
+        let player = null;
+        let isVideoPlaying = false;
+        let currentVideoId = null;
+        
+        let isReceiving = false;
+        
+        // Create floating particles
+        function createParticles() {
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 10 + 's';
+                particle.style.animationDuration = (10 + Math.random() * 10) + 's';
+                particles.appendChild(particle);
+            }
+        }
+        
+        createParticles();
+        
+        // YouTube API initialization
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('youtubePlayer', {
+                height: '315',
+                width: '560',
+                videoId: '',
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+        
+        function onPlayerReady(event) {
+            // Player is ready
+        }
+        
+        function onPlayerStateChange(event) {
+            if (event.data == YT.PlayerState.PLAYING) {
+                isVideoPlaying = true;
+                playPauseBtn.innerHTML = '⏸️ Pausar';
+            } else {
+                isVideoPlaying = false;
+                playPauseBtn.innerHTML = '▶️ Reproducir';
+            }
+        }
+        
+        function loadYouTubeVideo(songQuery) {
+            // Search for video (using first result)
+            const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(songQuery)}`;
+            
+            // For demo, use a placeholder video ID
+            // In production, you'd use YouTube Data API to get actual video ID
+            const videoId = 'dQw4w9WgXcQ'; // Default video
+            
+            if (player) {
+                player.loadVideoById(videoId);
+                videoContainer.style.display = 'flex';
+                musicSubtitle.textContent = '¡Video cargado! Voltea para controlar';
+            }
+        }
+        
+        // Video controls
+        playPauseBtn.addEventListener('click', () => {
+            if (player) {
+                if (isVideoPlaying) {
+                    player.pauseVideo();
+                } else {
+                    player.playVideo();
+                }
+            }
+        });
+        
+        closeVideoBtn.addEventListener('click', () => {
+            videoContainer.style.display = 'none';
+            if (player) {
+                player.stopVideo();
+            }
+            musicSubtitle.textContent = 'Voltea el celular para reproducir';
+        });
+        
+        // Connection status
+        socket.on('connect', () => {
+            connectionStatus.textContent = 'Conectado';
+            connectionStatus.className = 'connection-status connected';
+            console.log('Conectado al servidor');
+        });
+        
+        socket.on('disconnect', () => {
+            connectionStatus.textContent = 'Desconectado';
+            connectionStatus.className = 'connection-status disconnected';
+            console.log('Desconectado del servidor');
+        });
+        
+        // Handle play-music event
+        socket.on('play-music', (data) => {
+            console.log('Evento play-music recibido:', data);
+            
+            const songQuery = data.query || data;
+            
+            // Update UI
+            musicTitle.textContent = songQuery;
+            musicSubtitle.textContent = 'Voltea el celular para reproducir';
+            
+            // Show music info
+            musicInfo.classList.add('active');
+            calibratingText.style.opacity = '0.3';
+            
+            // Load YouTube video (but don't play yet)
+            window.currentSongQuery = songQuery;
+            loadYouTubeVideo(songQuery);
+        });
+
+        // Device orientation detection
+        let isWaitingForFlip = false;
+        let lastOrientation = null;
+        
+        window.addEventListener('deviceorientation', (event) => {
+            if (!window.currentSongQuery || !player || isWaitingForFlip) return;
+            
+            const currentOrientation = Math.abs(event.beta) > 45 ? 'flipped' : 'normal';
+            
+            // Only trigger on orientation change
+            if (lastOrientation !== currentOrientation) {
+                lastOrientation = currentOrientation;
+                isWaitingForFlip = true;
+                
+                if (currentOrientation === 'flipped') {
+                    // Device flipped - play video
+                    musicSubtitle.textContent = '¡Reproduciendo música!';
+                    if (player) {
+                        player.playVideo();
+                    }
+                } else {
+                    // Device returned to normal - pause video
+                    musicSubtitle.textContent = 'Pausado - Voltea para continuar';
+                    if (player) {
+                        player.pauseVideo();
+                    }
+                }
+                
+                // Reset waiting flag after delay
+                setTimeout(() => {
+                    isWaitingForFlip = false;
+                }, 1000);
+            }
+        });
+
+        // Fallback for devices without orientation sensors
+        window.addEventListener('click', () => {
+            if (window.currentSongQuery && player && !isWaitingForFlip) {
+                isWaitingForFlip = true;
+                musicSubtitle.textContent = '¡Reproduciendo música!';
+                
+                if (isVideoPlaying) {
+                    player.pauseVideo();
+                } else {
+                    player.playVideo();
+                }
+                
+                setTimeout(() => {
+                    isWaitingForFlip = false;
+                }, 500);
+            }
+        });
+        
+        // Add some interactivity
+        document.addEventListener('click', () => {
+            if (!isReceiving) {
+                // Create a ripple effect on click
+                const ripple = document.createElement('div');
+                ripple.style.cssText = `
+                    position: absolute;
+                    width: 20px;
+                    height: 20px;
+                    background: rgba(255, 255, 255, 0.3);
+                    border-radius: 50%;
+                    pointer-events: none;
+                    transform: translate(-50%, -50%);
+                    animation: ripple 0.6s ease-out;
+                `;
+                
+                const rect = document.body.getBoundingClientRect();
+                ripple.style.left = (event.clientX - rect.left) + 'px';
+                ripple.style.top = (event.clientY - rect.top) + 'px';
+                
+                document.body.appendChild(ripple);
+                
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600);
+            }
+        });
+        
+        // Add ripple animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                0% {
+                    width: 20px;
+                    height: 20px;
+                    opacity: 0.3;
+                }
+                100% {
+                    width: 100px;
+                    height: 100px;
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
