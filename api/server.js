@@ -12,18 +12,16 @@ const io = new Server(server, {
     }
 });
 
-const PORT = process.env.PORT || 3000;
-
 // Serve static files
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname, '..')));
 
 // Routes
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'master.html'));
+    res.sendFile(path.join(__dirname, '..', 'master.html'));
 });
 
 app.get('/viewer', (req, res) => {
-    res.sendFile(path.join(__dirname, 'viewer.html'));
+    res.sendFile(path.join(__dirname, '..', 'viewer.html'));
 });
 
 // Socket.io connection handling
@@ -46,15 +44,7 @@ io.on('connection', (socket) => {
     });
 });
 
-// For Vercel serverless environment
-if (process.env.NODE_ENV === 'production') {
-    module.exports = (req, res) => {
-        app(req, res);
-    };
-} else {
-    server.listen(PORT, () => {
-        console.log(`Servidor corriendo en http://localhost:${PORT}`);
-        console.log(`Controlador: http://localhost:${PORT}`);
-        console.log(`Espectador: http://localhost:${PORT}/viewer`);
-    });
-}
+// Export for Vercel
+module.exports = (req, res) => {
+    app(req, res);
+};
