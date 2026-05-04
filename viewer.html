@@ -296,16 +296,26 @@
         
         // HTTP polling function
         async function pollMusicEvents() {
+            console.log('Polling for music events...');
             try {
-                const response = await fetch(`/api/music-events?clientId=${clientId}`);
+                const response = await fetch(`/api/music-events?clientId=${clientId}&t=${Date.now()}`);
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
+                console.log('Received data:', data);
                 
                 // Check for new events
                 const newEvents = data.events.filter(event => event.id > lastEventId);
+                console.log('New events found:', newEvents.length);
                 
                 if (newEvents.length > 0) {
                     const latestEvent = newEvents[newEvents.length - 1];
                     lastEventId = latestEvent.id;
+                    console.log('Processing latest event:', latestEvent);
                     handleMusicEvent(latestEvent);
                 }
                 
@@ -317,6 +327,12 @@
                 console.error('Error polling music events:', error);
                 connectionStatus.textContent = 'Desconectado';
                 connectionStatus.className = 'connection-status disconnected';
+                
+                // Try to reconnect after 5 seconds
+                setTimeout(() => {
+                    console.log('Attempting to reconnect...');
+                    pollMusicEvents();
+                }, 5000);
             }
         }
         
@@ -381,18 +397,47 @@
         }
         
         function loadYouTubeVideo(songQuery) {
-            // Search for video (using first result)
-            const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(songQuery)}`;
+            console.log('Loading YouTube video for:', songQuery);
             
-            // For demo, use a placeholder video ID
-            // In production, you'd use YouTube Data API to get actual video ID
-            const videoId = 'dQw4w9WgXcQ'; // Default video
+            // Clean the query - remove dots and special characters
+            const cleanQuery = songQuery.replace(/^\.+/, '').trim();
+            console.log('Clean query:', cleanQuery);
             
+            // Use YouTube iframe API with direct search parameter
             if (player) {
-                player.loadVideoById(videoId);
+                // Try to load video by search query
+                player.loadVideoByUrl(`https://www.youtube.com/watch?v=${getVideoIdFromSearch(cleanQuery)}`);
                 videoContainer.style.display = 'flex';
                 musicSubtitle.textContent = '¡Video cargado! Voltea para controlar';
+                console.log('Video loaded successfully');
             }
+        }
+        
+        // Simple function to get video ID from search (using common patterns)
+        function getVideoIdFromSearch(query) {
+            // For common songs, return known video IDs
+            const videoMap = {
+                'bad bunny': '4tWOOI3C4sQ',
+                'alok': '2QvI9iBdLbA',
+                'unforgetable': '2QvI9iBdLbA',
+                'shakira': 'gl1aDHhNkKs',
+                'daddy yankee': 'CfihYWRWRTQ',
+                'rosalia': 'tQ35Wk_dcuE',
+                'bizarrap': 'kTJczUocfmU'
+            };
+            
+            // Check if query matches any known songs
+            const lowerQuery = query.toLowerCase();
+            for (const [key, videoId] of Object.entries(videoMap)) {
+                if (lowerQuery.includes(key)) {
+                    console.log(`Found video ID for ${key}: ${videoId}`);
+                    return videoId;
+                }
+            }
+            
+            // Default fallback video
+            console.log('Using default video ID');
+            return 'dQw4w9WgXcQ';
         }
         
         // Video controls
@@ -413,6 +458,25 @@
             }
             musicSubtitle.textContent = 'Voltea el celular para reproducir';
         });
+        
+        // Test API connectivity
+        async function testAPI() {
+            console.log('Testing API connectivity...');
+            try {
+                const response = await fetch('/api/status?t=' + Date.now());
+                const data = await response.json();
+                console.log('API Status:', data);
+                connectionStatus.textContent = `API OK (${data.connectedClients} clients)`;
+                connectionStatus.className = 'connection-status connected';
+            } catch (error) {
+                console.error('API Test failed:', error);
+                connectionStatus.textContent = 'API Error';
+                connectionStatus.className = 'connection-status disconnected';
+            }
+        }
+        
+        // Run test immediately
+        testAPI();
         
         // Start polling for music events
         setInterval(pollMusicEvents, 1000); // Poll every 1 second

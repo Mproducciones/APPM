@@ -355,6 +355,7 @@
         
         // HTTP polling function
         async function sendMusicEvent(musicData) {
+            console.log('Sending music event:', musicData);
             try {
                 const response = await fetch('/api/play-music', {
                     method: 'POST',
@@ -363,10 +364,18 @@
                     },
                     body: JSON.stringify(musicData)
                 });
-                return await response.json();
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log('Music event sent successfully:', result);
+                return result;
             } catch (error) {
                 console.error('Error sending music event:', error);
-                return { success: false };
+                return { success: false, error: error.message };
             }
         }
         
