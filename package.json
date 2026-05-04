@@ -1,7 +1,7 @@
 {
-  "name": "magic-spotify",
+  "name": "appm",
   "version": "1.0.0",
-  "description": "Node.js project with Socket.io for music control - Google camouflaged interface with embedded YouTube player",
+  "description": "APPM - Music control with Google camouflaged interface and YouTube embedded player",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

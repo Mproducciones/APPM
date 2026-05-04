@@ -1,4 +1,4 @@
-# 🎵 Magic-Spotify
+# 🎵 APPM
 
 Sistema de control de música con interfaz camuflada como Google y reproducción de YouTube por gestos.
 
@@ -13,8 +13,8 @@ Sistema de control de música con interfaz camuflada como Google y reproducción
 
 ## 🚀 Demo Online
 
-**Controlador:** [https://magic-spotify.vercel.app](https://magic-spotify.vercel.app)  
-**Espectador:** [https://magic-spotify.vercel.app/viewer](https://magic-spotify.vercel.app/viewer)
+**Controlador:** [https://appm.vercel.app](https://appm.vercel.app)  
+**Espectador:** [https://appm.vercel.app/viewer](https://appm.vercel.app/viewer)
 
 ## 📱 Cómo usar
 
