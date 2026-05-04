@@ -13,11 +13,6 @@
       "dest": "/api/server.js"
     },
     {
-      "src": "/socket.io/(.*)",
-      "dest": "/api/server.js",
-      "methods": ["GET", "POST", "OPTIONS"]
-    },
-    {
       "src": "/(.*)",
       "dest": "/api/server.js"
     }

@@ -273,10 +273,9 @@
         📱 Mantén el dispositivo en posición vertical para mejor experiencia
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
-        const socket = io();
+        // Get DOM elements
         const connectionStatus = document.getElementById('connectionStatus');
         const calibratingText = document.getElementById('calibratingText');
         const musicInfo = document.getElementById('musicInfo');
@@ -291,8 +290,54 @@
         let player = null;
         let isVideoPlaying = false;
         let currentVideoId = null;
-        
         let isReceiving = false;
+        let clientId = 'viewer-' + Date.now();
+        let lastEventId = 0;
+        
+        // HTTP polling function
+        async function pollMusicEvents() {
+            try {
+                const response = await fetch(`/api/music-events?clientId=${clientId}`);
+                const data = await response.json();
+                
+                // Check for new events
+                const newEvents = data.events.filter(event => event.id > lastEventId);
+                
+                if (newEvents.length > 0) {
+                    const latestEvent = newEvents[newEvents.length - 1];
+                    lastEventId = latestEvent.id;
+                    handleMusicEvent(latestEvent);
+                }
+                
+                // Update connection status
+                connectionStatus.textContent = 'Conectado';
+                connectionStatus.className = 'connection-status connected';
+                
+            } catch (error) {
+                console.error('Error polling music events:', error);
+                connectionStatus.textContent = 'Desconectado';
+                connectionStatus.className = 'connection-status disconnected';
+            }
+        }
+        
+        // Handle music event
+        function handleMusicEvent(data) {
+            console.log('Evento play-music recibido:', data);
+            
+            const songQuery = data.query || data;
+            
+            // Update UI
+            musicTitle.textContent = songQuery;
+            musicSubtitle.textContent = 'Voltea el celular para reproducir';
+            
+            // Show music info
+            musicInfo.classList.add('active');
+            calibratingText.style.opacity = '0.3';
+            
+            // Load YouTube video (but don't play yet)
+            window.currentSongQuery = songQuery;
+            loadYouTubeVideo(songQuery);
+        }
         
         // Create floating particles
         function createParticles() {
@@ -369,37 +414,10 @@
             musicSubtitle.textContent = 'Voltea el celular para reproducir';
         });
         
-        // Connection status
-        socket.on('connect', () => {
-            connectionStatus.textContent = 'Conectado';
-            connectionStatus.className = 'connection-status connected';
-            console.log('Conectado al servidor');
-        });
+        // Start polling for music events
+        setInterval(pollMusicEvents, 1000); // Poll every 1 second
         
-        socket.on('disconnect', () => {
-            connectionStatus.textContent = 'Desconectado';
-            connectionStatus.className = 'connection-status disconnected';
-            console.log('Desconectado del servidor');
-        });
-        
-        // Handle play-music event
-        socket.on('play-music', (data) => {
-            console.log('Evento play-music recibido:', data);
-            
-            const songQuery = data.query || data;
-            
-            // Update UI
-            musicTitle.textContent = songQuery;
-            musicSubtitle.textContent = 'Voltea el celular para reproducir';
-            
-            // Show music info
-            musicInfo.classList.add('active');
-            calibratingText.style.opacity = '0.3';
-            
-            // Load YouTube video (but don't play yet)
-            window.currentSongQuery = songQuery;
-            loadYouTubeVideo(songQuery);
-        });
+        console.log('APPM Viewer initialized with HTTP polling');
 
         // Device orientation detection
         let isWaitingForFlip = false;

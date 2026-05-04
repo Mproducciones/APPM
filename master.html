@@ -339,9 +339,7 @@
         </div>
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
         const searchInput = document.getElementById('searchInput');
         const searchOverlay = document.getElementById('searchOverlay');
         const searchQueryDisplay = document.getElementById('searchQueryDisplay');
@@ -353,15 +351,44 @@
         let typewriterText = 'Analizando tendencias musicales y frecuencias cerebrales actuales...';
         let typewriterIndex = 0;
         let musicSent = false; // Track if music was already sent
+        let clientId = 'master-' + Date.now();
         
-        // Connection status (hidden for camouflage)
-        socket.on('connect', () => {
-            console.log('Conectado al servidor');
-        });
+        // HTTP polling function
+        async function sendMusicEvent(musicData) {
+            try {
+                const response = await fetch('/api/play-music', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(musicData)
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Error sending music event:', error);
+                return { success: false };
+            }
+        }
         
-        socket.on('disconnect', () => {
-            console.log('Desconectado del servidor');
-        });
+        // Heartbeat function
+        async function sendHeartbeat() {
+            try {
+                await fetch('/api/heartbeat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ clientId: clientId })
+                });
+            } catch (error) {
+                console.error('Heartbeat error:', error);
+            }
+        }
+        
+        // Start heartbeat
+        setInterval(sendHeartbeat, 30000); // Every 30 seconds
+        
+        console.log('APPM Master initialized with HTTP polling');
         
         // Handle input events
         searchInput.addEventListener('keydown', (e) => {
@@ -457,7 +484,7 @@
                         
                         setTimeout(() => {
                             console.log('Enviando música:', songQuery);
-                            socket.emit('play-music', {
+                            sendMusicEvent({
                                 query: songQuery.trim(),
                                 timestamp: new Date().toISOString()
                             });
