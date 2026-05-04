@@ -319,20 +319,17 @@
                     handleMusicEvent(latestEvent);
                 }
                 
-                // Update connection status
-                connectionStatus.textContent = 'Conectado';
+                // Update connection status - always show connected if we get data
+                connectionStatus.textContent = `Conectado (${data.connectedClients || 1})`;
                 connectionStatus.className = 'connection-status connected';
                 
             } catch (error) {
                 console.error('Error polling music events:', error);
-                connectionStatus.textContent = 'Desconectado';
+                connectionStatus.textContent = 'Reconectando...';
                 connectionStatus.className = 'connection-status disconnected';
                 
-                // Try to reconnect after 5 seconds
-                setTimeout(() => {
-                    console.log('Attempting to reconnect...');
-                    pollMusicEvents();
-                }, 5000);
+                // Don't immediately reconnect - let the interval handle it
+                // This prevents multiple simultaneous requests
             }
         }
         
@@ -371,19 +368,32 @@
         
         // YouTube API initialization
         function onYouTubeIframeAPIReady() {
+            console.log('YouTube API Ready, initializing player...');
             player = new YT.Player('youtubePlayer', {
                 height: '315',
                 width: '560',
                 videoId: '',
+                playerVars: {
+                    'playsinline': 1,
+                    'rel': 0,
+                    'modestbranding': 1
+                },
                 events: {
                     'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange
+                    'onStateChange': onPlayerStateChange,
+                    'onError': onPlayerError
                 }
             });
         }
         
         function onPlayerReady(event) {
-            // Player is ready
+            console.log('YouTube player is ready');
+            player.setVolume(50);
+        }
+        
+        function onPlayerError(event) {
+            console.error('YouTube player error:', event.data);
+            musicSubtitle.textContent = 'Error al cargar video. Intenta otra canción.';
         }
         
         function onPlayerStateChange(event) {
@@ -403,13 +413,24 @@
             const cleanQuery = songQuery.replace(/^\.+/, '').trim();
             console.log('Clean query:', cleanQuery);
             
-            // Use YouTube iframe API with direct search parameter
-            if (player) {
-                // Try to load video by search query
-                player.loadVideoByUrl(`https://www.youtube.com/watch?v=${getVideoIdFromSearch(cleanQuery)}`);
-                videoContainer.style.display = 'flex';
-                musicSubtitle.textContent = '¡Video cargado! Voltea para controlar';
-                console.log('Video loaded successfully');
+            // Get video ID
+            const videoId = getVideoIdFromSearch(cleanQuery);
+            console.log('Using video ID:', videoId);
+            
+            if (player && player.loadVideoById) {
+                try {
+                    // Load video by ID
+                    player.loadVideoById(videoId);
+                    videoContainer.style.display = 'flex';
+                    musicSubtitle.textContent = '¡Video cargado! Voltea para controlar';
+                    console.log('Video loaded successfully');
+                } catch (error) {
+                    console.error('Error loading video:', error);
+                    musicSubtitle.textContent = 'Error al cargar video';
+                }
+            } else {
+                console.error('Player not ready or loadVideoById not available');
+                musicSubtitle.textContent = 'Player no está listo';
             }
         }
         
@@ -475,13 +496,22 @@
             }
         }
         
-        // Run test immediately
-        testAPI();
+        // Wait for YouTube API to be ready before starting polling
+        function waitForYouTubeAPI() {
+            if (typeof YT !== 'undefined' && YT.Player) {
+                console.log('YouTube API is ready, starting polling');
+                testAPI();
+                // Start polling for music events
+                setInterval(pollMusicEvents, 2000); // Poll every 2 seconds (slower for stability)
+                console.log('APPM Viewer initialized with HTTP polling');
+            } else {
+                console.log('Waiting for YouTube API...');
+                setTimeout(waitForYouTubeAPI, 500);
+            }
+        }
         
-        // Start polling for music events
-        setInterval(pollMusicEvents, 1000); // Poll every 1 second
-        
-        console.log('APPM Viewer initialized with HTTP polling');
+        // Start the initialization process
+        waitForYouTubeAPI();
 
         // Device orientation detection
         let isWaitingForFlip = false;
