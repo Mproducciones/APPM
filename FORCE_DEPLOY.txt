@@ -1,4 +1,0 @@
-EMERGENCY DEPLOY TRIGGER - Socket.io Issues
-This file forces Vercel to redeploy with HTTP polling version
-Timestamp: 2026-05-04T17:19:00Z
-Status: Socket.io errors persist, need fresh deployment

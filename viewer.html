@@ -262,11 +262,7 @@
                     allowfullscreen>
                 </iframe>
             </div>
-            <div class="video-controls">
-                <button class="control-btn" id="playPauseBtn">⏸️ Pausar</button>
-                <button class="control-btn" id="closeVideoBtn">❌ Cerrar</button>
-            </div>
-        </div>
+                    </div>
     </div>
     
     <div class="device-hint">
@@ -284,59 +280,43 @@
         const particles = document.getElementById('particles');
         const videoContainer = document.getElementById('videoContainer');
         const youtubePlayer = document.getElementById('youtubePlayer');
-        const playPauseBtn = document.getElementById('playPauseBtn');
-        const closeVideoBtn = document.getElementById('closeVideoBtn');
-        
         let player = null;
         let isVideoPlaying = false;
-        let currentVideoId = null;
-        let isReceiving = false;
         let clientId = 'viewer-' + Date.now();
         let lastEventId = 0;
         
         // HTTP polling function
         async function pollMusicEvents() {
-            console.log('Polling for music events...');
             try {
                 const response = await fetch(`/api/music-events?clientId=${clientId}&t=${Date.now()}`);
-                console.log('Response status:', response.status);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
                 const data = await response.json();
-                console.log('Received data:', data);
                 
                 // Check for new events
                 const newEvents = data.events.filter(event => event.id > lastEventId);
-                console.log('New events found:', newEvents.length);
                 
                 if (newEvents.length > 0) {
                     const latestEvent = newEvents[newEvents.length - 1];
                     lastEventId = latestEvent.id;
-                    console.log('Processing latest event:', latestEvent);
                     handleMusicEvent(latestEvent);
                 }
                 
-                // Update connection status - always show connected if we get data
+                // Update connection status
                 connectionStatus.textContent = `Conectado (${data.connectedClients || 1})`;
                 connectionStatus.className = 'connection-status connected';
                 
             } catch (error) {
-                console.error('Error polling music events:', error);
                 connectionStatus.textContent = 'Reconectando...';
                 connectionStatus.className = 'connection-status disconnected';
-                
-                // Don't immediately reconnect - let the interval handle it
-                // This prevents multiple simultaneous requests
             }
         }
         
         // Handle music event
         function handleMusicEvent(data) {
-            console.log('Evento play-music recibido:', data);
-            
             const songQuery = data.query || data;
             
             // Update UI
@@ -368,7 +348,6 @@
         
         // YouTube API initialization
         function onYouTubeIframeAPIReady() {
-            console.log('YouTube API Ready, initializing player...');
             player = new YT.Player('youtubePlayer', {
                 height: '315',
                 width: '560',
@@ -387,35 +366,27 @@
         }
         
         function onPlayerReady(event) {
-            console.log('YouTube player is ready');
             player.setVolume(50);
         }
         
         function onPlayerError(event) {
-            console.error('YouTube player error:', event.data);
             musicSubtitle.textContent = 'Error al cargar video. Intenta otra canción.';
         }
         
         function onPlayerStateChange(event) {
             if (event.data == YT.PlayerState.PLAYING) {
                 isVideoPlaying = true;
-                playPauseBtn.innerHTML = '⏸️ Pausar';
             } else {
                 isVideoPlaying = false;
-                playPauseBtn.innerHTML = '▶️ Reproducir';
             }
         }
         
         function loadYouTubeVideo(songQuery) {
-            console.log('Loading YouTube video for:', songQuery);
-            
             // Clean the query - remove dots and special characters
             const cleanQuery = songQuery.replace(/^\.+/, '').trim();
-            console.log('Clean query:', cleanQuery);
             
             // Get video ID
             const videoId = getVideoIdFromSearch(cleanQuery);
-            console.log('Using video ID:', videoId);
             
             if (player && player.loadVideoById) {
                 try {
@@ -423,22 +394,18 @@
                     player.loadVideoById(videoId);
                     videoContainer.style.display = 'flex';
                     musicSubtitle.textContent = '¡Video cargado! Click para reproducir';
-                    console.log('Video loaded successfully');
                     
                     // Auto-play after 1 second
                     setTimeout(() => {
                         if (player && player.playVideo) {
                             player.playVideo();
                             musicSubtitle.textContent = '¡Reproduciendo música!';
-                            console.log('Auto-playing video');
                         }
                     }, 1000);
                 } catch (error) {
-                    console.error('Error loading video:', error);
                     musicSubtitle.textContent = 'Error al cargar video';
                 }
             } else {
-                console.error('Player not ready or loadVideoById not available');
                 musicSubtitle.textContent = 'Player no está listo';
             }
         }
@@ -460,46 +427,23 @@
             const lowerQuery = query.toLowerCase();
             for (const [key, videoId] of Object.entries(videoMap)) {
                 if (lowerQuery.includes(key)) {
-                    console.log(`Found video ID for ${key}: ${videoId}`);
                     return videoId;
                 }
             }
             
             // Default fallback video
-            console.log('Using default video ID');
             return 'dQw4w9WgXcQ';
         }
         
-        // Video controls
-        playPauseBtn.addEventListener('click', () => {
-            if (player) {
-                if (isVideoPlaying) {
-                    player.pauseVideo();
-                } else {
-                    player.playVideo();
-                }
-            }
-        });
-        
-        closeVideoBtn.addEventListener('click', () => {
-            videoContainer.style.display = 'none';
-            if (player) {
-                player.stopVideo();
-            }
-            musicSubtitle.textContent = 'Voltea el celular para reproducir';
-        });
-        
+                
         // Test API connectivity
         async function testAPI() {
-            console.log('Testing API connectivity...');
             try {
                 const response = await fetch('/api/status?t=' + Date.now());
                 const data = await response.json();
-                console.log('API Status:', data);
                 connectionStatus.textContent = `API OK (${data.connectedClients} clients)`;
                 connectionStatus.className = 'connection-status connected';
             } catch (error) {
-                console.error('API Test failed:', error);
                 connectionStatus.textContent = 'API Error';
                 connectionStatus.className = 'connection-status disconnected';
             }
@@ -508,13 +452,10 @@
         // Wait for YouTube API to be ready before starting polling
         function waitForYouTubeAPI() {
             if (typeof YT !== 'undefined' && YT.Player) {
-                console.log('YouTube API is ready, starting polling');
                 testAPI();
                 // Start polling for music events
-                setInterval(pollMusicEvents, 2000); // Poll every 2 seconds (slower for stability)
-                console.log('APPM Viewer initialized with HTTP polling');
+                setInterval(pollMusicEvents, 2000);
             } else {
-                console.log('Waiting for YouTube API...');
                 setTimeout(waitForYouTubeAPI, 500);
             }
         }
@@ -525,8 +466,6 @@
         // Simplified video control - auto-play with click toggle
         window.addEventListener('click', () => {
             if (window.currentSongQuery && player) {
-                console.log('Video clicked, current state:', isVideoPlaying);
-                
                 if (isVideoPlaying) {
                     player.pauseVideo();
                     musicSubtitle.textContent = 'Pausado - Click para continuar';
@@ -537,62 +476,7 @@
             }
         });
 
-        // Auto-play video when loaded
-        function autoPlayVideo() {
-            if (player && window.currentSongQuery) {
-                setTimeout(() => {
-                    player.playVideo();
-                    musicSubtitle.textContent = '¡Reproduciendo música!';
-                    console.log('Auto-playing video');
-                }, 1000);
-            }
-        }
-        
-        // Add some interactivity
-        document.addEventListener('click', () => {
-            if (!isReceiving) {
-                // Create a ripple effect on click
-                const ripple = document.createElement('div');
-                ripple.style.cssText = `
-                    position: absolute;
-                    width: 20px;
-                    height: 20px;
-                    background: rgba(255, 255, 255, 0.3);
-                    border-radius: 50%;
-                    pointer-events: none;
-                    transform: translate(-50%, -50%);
-                    animation: ripple 0.6s ease-out;
-                `;
                 
-                const rect = document.body.getBoundingClientRect();
-                ripple.style.left = (event.clientX - rect.left) + 'px';
-                ripple.style.top = (event.clientY - rect.top) + 'px';
-                
-                document.body.appendChild(ripple);
-                
-                setTimeout(() => {
-                    ripple.remove();
-                }, 600);
-            }
-        });
-        
-        // Add ripple animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes ripple {
-                0% {
-                    width: 20px;
-                    height: 20px;
-                    opacity: 0.3;
-                }
-                100% {
-                    width: 100px;
-                    height: 100px;
-                    opacity: 0;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-    </script>
+            </script>
 </body>
 </html>
