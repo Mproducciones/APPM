@@ -449,14 +449,22 @@
                 fallbackPlayer.style.display = 'block';
                 videoContainer.style.display = 'flex';
                 
-                // Load video using direct YouTube embed URL
-                videoElement.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1`;
-                musicSubtitle.textContent = 'Video cargado (modo alternativo)';
+                // Create iframe for YouTube embed (more reliable than video element)
+                const iframe = document.createElement('iframe');
+                iframe.width = '560';
+                iframe.height = '315';
+                iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1&rel=0`;
+                iframe.frameBorder = '0';
+                iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+                iframe.allowFullscreen = true;
+                iframe.style.width = '100%';
+                iframe.style.maxWidth = '560px';
                 
-                // Auto-play fallback
-                videoElement.play().catch(e => {
-                    musicSubtitle.textContent = 'Video cargado - Click para reproducir';
-                });
+                // Clear and set new iframe
+                videoElement.innerHTML = '';
+                videoElement.appendChild(iframe);
+                
+                musicSubtitle.textContent = 'Video cargado (modo alternativo)';
             } else {
                 musicSubtitle.textContent = 'Error: No se pudo cargar ningún reproductor';
             }
