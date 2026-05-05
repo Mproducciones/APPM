@@ -108,39 +108,27 @@
             margin-bottom: 20px;
         }
 
-        .video-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.95);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+        .map-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             z-index: 1000;
+            display: none;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
         }
-
-        .video-wrapper {
+        
+        .map-wrapper {
             position: relative;
-            width: 90%;
-            max-width: 800px;
-            aspect-ratio: 16/9;
-        }
-
-        .video-wrapper iframe {
             width: 100%;
-            height: 100%;
+            max-width: 560px;
+            margin: 0 auto;
             border-radius: 10px;
         }
-
-        .video-controls {
-            display: flex;
-            gap: 15px;
-            margin-top: 20px;
-        }
-
+        
         .control-btn {
             padding: 12px 24px;
             background: linear-gradient(135deg, #ff0000, #cc0000);
@@ -153,7 +141,7 @@
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(255, 0, 0, 0.3);
         }
-
+        
         .control-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(255, 0, 0, 0.4);
@@ -250,29 +238,17 @@
             <div class="music-subtitle" id="musicSubtitle">Voltea el celular para reproducir</div>
         </div>
         
-        <div class="video-container" id="videoContainer" style="display: none;">
-            <div class="video-wrapper">
+        <div class="map-container" id="mapContainer" style="display: none;">
+            <div class="map-wrapper">
                 <iframe 
-                    id="youtubePlayer"
+                    id="googleMaps"
                     width="560" 
                     height="315" 
                     src="" 
                     frameborder="0" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                     allowfullscreen>
                 </iframe>
-                
-                <!-- Fallback video player -->
-                <div id="fallbackPlayer" style="display: none;">
-                    <video 
-                        id="videoElement"
-                        width="560" 
-                        height="315" 
-                        controls
-                        style="width: 100%; max-width: 560px;">
-                        Your browser does not support the video tag.
-                    </video>
-                </div>
             </div>
         </div>
     </div>
@@ -281,7 +257,6 @@
         📱 Mantén el dispositivo en posición vertical para mejor experiencia
     </div>
 
-    <script src="https://www.youtube.com/iframe_api"></script>
     <script>
         // Get DOM elements
         const connectionStatus = document.getElementById('connectionStatus');
@@ -290,10 +265,8 @@
         const musicTitle = document.getElementById('musicTitle');
         const musicSubtitle = document.getElementById('musicSubtitle');
         const particles = document.getElementById('particles');
-        const videoContainer = document.getElementById('videoContainer');
-        const youtubePlayer = document.getElementById('youtubePlayer');
-        let player = null;
-        let isVideoPlaying = false;
+        const mapContainer = document.getElementById('mapContainer');
+        const googleMaps = document.getElementById('googleMaps');
         let clientId = 'viewer-' + Date.now();
         let lastEventId = 0;
         
@@ -327,21 +300,21 @@
             }
         }
         
-        // Handle music event
-        function handleMusicEvent(data) {
-            const songQuery = data.query || data;
+        // Handle location event
+        function handleLocationEvent(data) {
+            const locationQuery = data.query || data;
             
             // Update UI
-            musicTitle.textContent = songQuery;
-            musicSubtitle.textContent = 'Voltea el celular para reproducir';
+            musicTitle.textContent = locationQuery;
+            musicSubtitle.textContent = 'Ubicación encontrada';
             
-            // Show music info
+            // Show location info
             musicInfo.classList.add('active');
             calibratingText.style.opacity = '0.3';
             
-            // Load YouTube video (but don't play yet)
-            window.currentSongQuery = songQuery;
-            loadYouTubeVideo(songQuery);
+            // Load Google Maps
+            window.currentLocation = locationQuery;
+            loadGoogleMaps(locationQuery);
         }
         
         // Create floating particles
@@ -393,48 +366,34 @@
             }
         }
         
-        function loadYouTubeVideo(songQuery) {
+        function loadGoogleMaps(locationQuery) {
             // Clean the query - remove dots and special characters
-            const cleanQuery = songQuery.replace(/^\.+/, '').trim();
+            const cleanQuery = locationQuery.replace(/^\.+/, '').trim();
             
-            // Get video ID
-            const videoId = getVideoIdFromSearch(cleanQuery);
+            // Get location coordinates
+            const locationData = getLocationFromSearch(cleanQuery);
             
-            // Wait for player to be ready, then load video
-            let loadAttempts = 0;
-            const maxLoadAttempts = 10; // 5 seconds max wait
-            
-            function attemptLoad() {
-                loadAttempts++;
-                
-                if (player && player.loadVideoById) {
-                    try {
-                        // Load video by ID
-                        player.loadVideoById(videoId);
-                        videoContainer.style.display = 'flex';
-                        musicSubtitle.textContent = '¡Video cargado! Click para reproducir';
-                        
-                        // Auto-play after 1 second
-                        setTimeout(() => {
-                            if (player && player.playVideo) {
-                                player.playVideo();
-                                musicSubtitle.textContent = '¡Reproduciendo música!';
-                            }
-                        }, 1000);
-                    } catch (error) {
-                        musicSubtitle.textContent = 'Error al cargar video';
-                    }
-                } else if (loadAttempts < maxLoadAttempts) {
-                    // Player not ready, retry after 500ms
-                    musicSubtitle.textContent = `Preparando reproductor... (${loadAttempts}/${maxLoadAttempts})`;
-                    setTimeout(attemptLoad, 500);
-                } else {
-                    // Failed to load YouTube player - use fallback
-                    loadFallbackVideo(videoId);
+            if (locationData && googleMaps) {
+                try {
+                    // Create Google Maps URL
+                    const mapsUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTQTdLFWF3J8Fe8r_3BT9QDQ&q=${encodeURIComponent(locationData.address)}`;
+                    
+                    // Load maps
+                    googleMaps.src = mapsUrl;
+                    mapContainer.style.display = 'flex';
+                    musicSubtitle.textContent = 'Mapa cargado - Abriendo aplicación...';
+                    
+                    // Auto-open Google Maps app after 2 seconds
+                    setTimeout(() => {
+                        openGoogleMapsApp(locationData);
+                    }, 2000);
+                    
+                } catch (error) {
+                    musicSubtitle.textContent = 'Error al cargar mapa';
                 }
+            } else {
+                musicSubtitle.textContent = 'Ubicación no encontrada';
             }
-            
-            attemptLoad();
         }
         
         // Fallback video loading function
@@ -470,32 +429,52 @@
             }
         }
         
-        // Simple function to get video ID from search (using common patterns)
-        function getVideoIdFromSearch(query) {
-            // For common songs, return known video IDs
-            const videoMap = {
-                'bad bunny': '4tWOOI3C4sQ',
-                'alok': '2QvI9iBdLbA',
-                'unforgetable': '2QvI9iBdLbA',
-                'shakira': 'gl1aDHhNkKs',
-                'daddy yankee': 'CfihYWRWRTQ',
-                'rosalia': 'tQ35Wk_dcuE',
-                'bizarrap': 'kTJczUocfmU'
+        // Simple function to get location data from search
+        function getLocationFromSearch(query) {
+            // Popular locations database
+            const locationMap = {
+                'torre eiffel': { address: 'Tour Eiffel, Paris, France', lat: 48.8584, lng: 2.2945 },
+                'estatua libertad': { address: 'Statue of Liberty, New York, USA', lat: 40.6892, lng: -74.0445 },
+                'times square': { address: 'Times Square, New York, USA', lat: 40.7580, lng: -73.9855 },
+                'coliseo': { address: 'Colosseum, Rome, Italy', lat: 41.8902, lng: 12.4922 },
+                'muro berlin': { address: 'Berlin Wall, Berlin, Germany', lat: 52.5163, lng: 13.3777 },
+                'taj mahal': { address: 'Taj Mahal, Agra, India', lat: 27.1751, lng: 78.0421 },
+                'machu picchu': { address: 'Machu Picchu, Peru', lat: -13.1631, lng: -72.5450 },
+                'piramides': { address: 'Great Pyramids of Giza, Egypt', lat: 29.9792, lng: 31.1342 },
+                'sydney opera': { address: 'Sydney Opera House, Sydney, Australia', lat: -33.8568, lng: 151.2153 },
+                'golden gate': { address: 'Golden Gate Bridge, San Francisco, USA', lat: 37.8199, lng: -122.4783 },
+                'disney': { address: 'Disneyland, Anaheim, USA', lat: 33.8121, lng: -117.9180 },
+                'white house': { address: 'White House, Washington DC, USA', lat: 38.8977, lng: -77.0365 },
+                'burj khalifa': { address: 'Burj Khalifa, Dubai, UAE', lat: 25.1972, lng: 55.2744 },
+                'central park': { address: 'Central Park, New York, USA', lat: 40.7829, lng: -73.9654 },
+                'hollywood': { address: 'Hollywood Sign, Los Angeles, USA', lat: 34.1341, lng: -118.3215 }
             };
             
-            // Check if query matches any known songs
+            // Check if query matches any known locations
             const lowerQuery = query.toLowerCase();
-            for (const [key, videoId] of Object.entries(videoMap)) {
+            for (const [key, locationData] of Object.entries(locationMap)) {
                 if (lowerQuery.includes(key)) {
-                    return videoId;
+                    return locationData;
                 }
             }
             
-            // Default fallback video
-            return 'dQw4w9WgXcQ';
+            // Default fallback - search the query directly
+            return { address: query, lat: null, lng: null };
         }
         
                 
+        // Open Google Maps app on mobile
+        function openGoogleMapsApp(locationData) {
+            const mapsUrl = locationData.lat && locationData.lng 
+                ? `geo:${locationData.lat},${locationData.lng}?q=${encodeURIComponent(locationData.address)}`
+                : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationData.address)}`;
+            
+            // Try to open in Google Maps app
+            window.location.href = mapsUrl;
+            
+            musicSubtitle.textContent = '¡Abriendo Google Maps!';
+        }
+        
         // Test API connectivity
         async function testAPI() {
             try {
@@ -509,45 +488,39 @@
             }
         }
         
-        // Wait for YouTube API to be ready before starting polling
-        let apiAttempts = 0;
-        const maxApiAttempts = 20; // 10 seconds max wait
-        
-        function waitForYouTubeAPI() {
-            apiAttempts++;
-            
-            if (typeof YT !== 'undefined' && YT.Player) {
-                testAPI();
-                // Start polling for music events
-                setInterval(pollMusicEvents, 2000);
-            } else if (apiAttempts < maxApiAttempts) {
-                setTimeout(waitForYouTubeAPI, 500);
-            } else {
-                // YouTube API failed to load - show error
-                musicSubtitle.textContent = 'Error: YouTube API no disponible';
-                connectionStatus.textContent = 'API Error';
-                connectionStatus.className = 'connection-status disconnected';
-                
-                // Start polling anyway for music events
-                setInterval(pollMusicEvents, 2000);
-            }
-        }
-        
-        // Start the initialization process
-        waitForYouTubeAPI();
+        // Start polling for location events immediately
+        testAPI();
+        setInterval(pollMusicEvents, 2000);
 
-        // Simplified video control - auto-play with click toggle
-        window.addEventListener('click', () => {
-            if (window.currentSongQuery && player) {
-                if (isVideoPlaying) {
-                    player.pauseVideo();
-                    musicSubtitle.textContent = 'Pausado - Click para continuar';
-                } else {
-                    player.playVideo();
-                    musicSubtitle.textContent = '¡Reproduciendo música!';
+        // Handle location events
+        pollMusicEvents = async function() {
+            try {
+                const response = await fetch(`/api/music-events?clientId=${clientId}&t=${Date.now()}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
+                
+                const data = await response.json();
+                
+                // Check for new events
+                const newEvents = data.events.filter(event => event.id > lastEventId);
+                
+                if (newEvents.length > 0) {
+                    const latestEvent = newEvents[newEvents.length - 1];
+                    lastEventId = latestEvent.id;
+                    handleLocationEvent(latestEvent);
+                }
+                
+                // Update connection status
+                connectionStatus.textContent = `Conectado (${data.connectedClients || 1})`;
+                connectionStatus.className = 'connection-status connected';
+                
+            } catch (error) {
+                connectionStatus.textContent = 'Reconectando...';
+                connectionStatus.className = 'connection-status disconnected';
             }
-        });
+        };
 
                 
             </script>
