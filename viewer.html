@@ -388,26 +388,33 @@
             // Get video ID
             const videoId = getVideoIdFromSearch(cleanQuery);
             
-            if (player && player.loadVideoById) {
-                try {
-                    // Load video by ID
-                    player.loadVideoById(videoId);
-                    videoContainer.style.display = 'flex';
-                    musicSubtitle.textContent = '¡Video cargado! Click para reproducir';
-                    
-                    // Auto-play after 1 second
-                    setTimeout(() => {
-                        if (player && player.playVideo) {
-                            player.playVideo();
-                            musicSubtitle.textContent = '¡Reproduciendo música!';
-                        }
-                    }, 1000);
-                } catch (error) {
-                    musicSubtitle.textContent = 'Error al cargar video';
+            // Wait for player to be ready, then load video
+            function attemptLoad() {
+                if (player && player.loadVideoById) {
+                    try {
+                        // Load video by ID
+                        player.loadVideoById(videoId);
+                        videoContainer.style.display = 'flex';
+                        musicSubtitle.textContent = '¡Video cargado! Click para reproducir';
+                        
+                        // Auto-play after 1 second
+                        setTimeout(() => {
+                            if (player && player.playVideo) {
+                                player.playVideo();
+                                musicSubtitle.textContent = '¡Reproduciendo música!';
+                            }
+                        }, 1000);
+                    } catch (error) {
+                        musicSubtitle.textContent = 'Error al cargar video';
+                    }
+                } else {
+                    // Player not ready, retry after 500ms
+                    musicSubtitle.textContent = 'Preparando reproductor...';
+                    setTimeout(attemptLoad, 500);
                 }
-            } else {
-                musicSubtitle.textContent = 'Player no está listo';
             }
+            
+            attemptLoad();
         }
         
         // Simple function to get video ID from search (using common patterns)
