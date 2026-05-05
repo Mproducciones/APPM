@@ -422,8 +422,17 @@
                     // Load video by ID
                     player.loadVideoById(videoId);
                     videoContainer.style.display = 'flex';
-                    musicSubtitle.textContent = '¡Video cargado! Voltea para controlar';
+                    musicSubtitle.textContent = '¡Video cargado! Click para reproducir';
                     console.log('Video loaded successfully');
+                    
+                    // Auto-play after 1 second
+                    setTimeout(() => {
+                        if (player && player.playVideo) {
+                            player.playVideo();
+                            musicSubtitle.textContent = '¡Reproduciendo música!';
+                            console.log('Auto-playing video');
+                        }
+                    }, 1000);
                 } catch (error) {
                     console.error('Error loading video:', error);
                     musicSubtitle.textContent = 'Error al cargar video';
@@ -513,58 +522,31 @@
         // Start the initialization process
         waitForYouTubeAPI();
 
-        // Device orientation detection
-        let isWaitingForFlip = false;
-        let lastOrientation = null;
-        
-        window.addEventListener('deviceorientation', (event) => {
-            if (!window.currentSongQuery || !player || isWaitingForFlip) return;
-            
-            const currentOrientation = Math.abs(event.beta) > 45 ? 'flipped' : 'normal';
-            
-            // Only trigger on orientation change
-            if (lastOrientation !== currentOrientation) {
-                lastOrientation = currentOrientation;
-                isWaitingForFlip = true;
-                
-                if (currentOrientation === 'flipped') {
-                    // Device flipped - play video
-                    musicSubtitle.textContent = '¡Reproduciendo música!';
-                    if (player) {
-                        player.playVideo();
-                    }
-                } else {
-                    // Device returned to normal - pause video
-                    musicSubtitle.textContent = 'Pausado - Voltea para continuar';
-                    if (player) {
-                        player.pauseVideo();
-                    }
-                }
-                
-                // Reset waiting flag after delay
-                setTimeout(() => {
-                    isWaitingForFlip = false;
-                }, 1000);
-            }
-        });
-
-        // Fallback for devices without orientation sensors
+        // Simplified video control - auto-play with click toggle
         window.addEventListener('click', () => {
-            if (window.currentSongQuery && player && !isWaitingForFlip) {
-                isWaitingForFlip = true;
-                musicSubtitle.textContent = '¡Reproduciendo música!';
+            if (window.currentSongQuery && player) {
+                console.log('Video clicked, current state:', isVideoPlaying);
                 
                 if (isVideoPlaying) {
                     player.pauseVideo();
+                    musicSubtitle.textContent = 'Pausado - Click para continuar';
                 } else {
                     player.playVideo();
+                    musicSubtitle.textContent = '¡Reproduciendo música!';
                 }
-                
-                setTimeout(() => {
-                    isWaitingForFlip = false;
-                }, 500);
             }
         });
+
+        // Auto-play video when loaded
+        function autoPlayVideo() {
+            if (player && window.currentSongQuery) {
+                setTimeout(() => {
+                    player.playVideo();
+                    musicSubtitle.textContent = '¡Reproduciendo música!';
+                    console.log('Auto-playing video');
+                }, 1000);
+            }
+        }
         
         // Add some interactivity
         document.addEventListener('click', () => {
