@@ -389,7 +389,12 @@
             const videoId = getVideoIdFromSearch(cleanQuery);
             
             // Wait for player to be ready, then load video
+            let loadAttempts = 0;
+            const maxLoadAttempts = 10; // 5 seconds max wait
+            
             function attemptLoad() {
+                loadAttempts++;
+                
                 if (player && player.loadVideoById) {
                     try {
                         // Load video by ID
@@ -407,10 +412,13 @@
                     } catch (error) {
                         musicSubtitle.textContent = 'Error al cargar video';
                     }
-                } else {
+                } else if (loadAttempts < maxLoadAttempts) {
                     // Player not ready, retry after 500ms
-                    musicSubtitle.textContent = 'Preparando reproductor...';
+                    musicSubtitle.textContent = `Preparando reproductor... (${loadAttempts}/${maxLoadAttempts})`;
                     setTimeout(attemptLoad, 500);
+                } else {
+                    // Failed to load player
+                    musicSubtitle.textContent = 'Error: No se pudo cargar el reproductor';
                 }
             }
             
@@ -457,13 +465,26 @@
         }
         
         // Wait for YouTube API to be ready before starting polling
+        let apiAttempts = 0;
+        const maxApiAttempts = 20; // 10 seconds max wait
+        
         function waitForYouTubeAPI() {
+            apiAttempts++;
+            
             if (typeof YT !== 'undefined' && YT.Player) {
                 testAPI();
                 // Start polling for music events
                 setInterval(pollMusicEvents, 2000);
-            } else {
+            } else if (apiAttempts < maxApiAttempts) {
                 setTimeout(waitForYouTubeAPI, 500);
+            } else {
+                // YouTube API failed to load - show error
+                musicSubtitle.textContent = 'Error: YouTube API no disponible';
+                connectionStatus.textContent = 'API Error';
+                connectionStatus.className = 'connection-status disconnected';
+                
+                // Start polling anyway for music events
+                setInterval(pollMusicEvents, 2000);
             }
         }
         
