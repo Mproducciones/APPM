@@ -261,8 +261,20 @@
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                     allowfullscreen>
                 </iframe>
+                
+                <!-- Fallback video player -->
+                <div id="fallbackPlayer" style="display: none;">
+                    <video 
+                        id="videoElement"
+                        width="560" 
+                        height="315" 
+                        controls
+                        style="width: 100%; max-width: 560px;">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
             </div>
-                    </div>
+        </div>
     </div>
     
     <div class="device-hint">
@@ -417,12 +429,37 @@
                     musicSubtitle.textContent = `Preparando reproductor... (${loadAttempts}/${maxLoadAttempts})`;
                     setTimeout(attemptLoad, 500);
                 } else {
-                    // Failed to load player
-                    musicSubtitle.textContent = 'Error: No se pudo cargar el reproductor';
+                    // Failed to load YouTube player - use fallback
+                    loadFallbackVideo(videoId);
                 }
             }
             
             attemptLoad();
+        }
+        
+        // Fallback video loading function
+        function loadFallbackVideo(videoId) {
+            const fallbackPlayer = document.getElementById('fallbackPlayer');
+            const videoElement = document.getElementById('videoElement');
+            const youtubePlayer = document.getElementById('youtubePlayer');
+            
+            if (fallbackPlayer && videoElement) {
+                // Hide YouTube player, show fallback
+                youtubePlayer.style.display = 'none';
+                fallbackPlayer.style.display = 'block';
+                videoContainer.style.display = 'flex';
+                
+                // Load video using direct YouTube embed URL
+                videoElement.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1`;
+                musicSubtitle.textContent = 'Video cargado (modo alternativo)';
+                
+                // Auto-play fallback
+                videoElement.play().catch(e => {
+                    musicSubtitle.textContent = 'Video cargado - Click para reproducir';
+                });
+            } else {
+                musicSubtitle.textContent = 'Error: No se pudo cargar ningún reproductor';
+            }
         }
         
         // Simple function to get video ID from search (using common patterns)
