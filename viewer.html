@@ -59,7 +59,6 @@
         let lastEventId = 0;
         const sessionStartMs = Date.now();
         const VIEWER_RESET_MS = 20000;
-        const REDIRECT_TO_GOOGLE_MS = 1200;
         let resetTimer = null;
         
         // HTTP polling function
@@ -159,7 +158,11 @@
                     googleMaps.src = mapsUrl;
                     mapContainer.style.display = 'flex';
                     musicSubtitle.textContent = 'Mapa cargado';
-                    scheduleGoogleRedirect(locationData);
+                    
+                    // Intento de apertura directa como antes (sin redireccion web forzada)
+                    setTimeout(() => {
+                        openGoogleMapsApp(locationData);
+                    }, 1200);
                     
                 } catch (error) {
                     musicSubtitle.textContent = 'Error al cargar mapa';
@@ -202,15 +205,12 @@
             return { address: query, lat: null, lng: null };
         }
 
-        function scheduleGoogleRedirect(locationData) {
-            const hasCoords = locationData.lat && locationData.lng;
-            const mapsWebUrl = hasCoords
-                ? `https://www.google.com/maps/search/?api=1&query=${locationData.lat},${locationData.lng}`
+        function openGoogleMapsApp(locationData) {
+            const mapsUrl = locationData.lat && locationData.lng
+                ? `geo:${locationData.lat},${locationData.lng}?q=${encodeURIComponent(locationData.address)}`
                 : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationData.address)}`;
-
-            setTimeout(() => {
-                window.location.href = mapsWebUrl;
-            }, REDIRECT_TO_GOOGLE_MS);
+            
+            window.location.href = mapsUrl;
         }
         
                 
