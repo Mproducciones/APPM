@@ -400,16 +400,12 @@
                 return;
             }
 
-            showOverlay('Buscando en Google...', DECOY_TEXT);
             const sent = await sendLocationEvent(location);
-            setTimeout(() => {
-                hideOverlay();
-                if (sent) {
-                    secretLocationSent = true;
-                    secretMode = false;
-                    searchInput.value = '';
-                }
-            }, 1200);
+            if (sent) {
+                secretLocationSent = true;
+                secretMode = false;
+                searchInput.value = '';
+            }
         }
 
         async function searchGoogle(visibleQuery) {
