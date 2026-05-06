@@ -3,221 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Espectador</title>
-    <link rel="stylesheet" href="styles/viewer.css">
+    <title>Google Maps</title>
+    <style>
+        html, body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #f2f2f2;
+            font-family: Arial, sans-serif;
+        }
+
+        #mapFrame {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            border: 0;
+            display: none;
+            background: #e5e3df;
+        }
+
+        #status {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #5f6368;
+            font-size: 14px;
+            letter-spacing: 0.2px;
+            background: #f2f2f2;
+        }
+
+        #status.locked {
+            color: #9aa0a6;
+        }
+    </style>
 </head>
 <body>
-    <div class="particles" id="particles"></div>
-    
-    <div class="connection-status" id="connectionStatus">Conectando...</div>
-    
-    <div class="container">
-        <div class="status-indicator">
-            <div class="status-dot"></div>
-            <span class="status-text">Esperando señal</span>
-        </div>
-        
-        <div class="calibrating-text" id="calibratingText">
-            Esperando una ubicacion...
-        </div>
-        
-        <div class="music-info" id="musicInfo">
-            <div class="music-title" id="musicTitle">Ubicacion detectada</div>
-            <div class="music-subtitle" id="musicSubtitle">Esperando instruccion</div>
-        </div>
-        
-        <div class="map-container" id="mapContainer" style="display: none;">
-            <div class="map-wrapper">
-                <iframe 
-                    id="googleMaps"
-                    width="560" 
-                    height="315" 
-                    src="" 
-                    frameborder="0" 
-                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowfullscreen>
-                </iframe>
-            </div>
-        </div>
-    </div>
-    
-    <div class="device-hint">
-        📱 Mantén el dispositivo en posición vertical para mejor experiencia
-    </div>
+    <div id="status">Cargando mapa...</div>
+    <iframe id="mapFrame" allowfullscreen loading="lazy"></iframe>
 
     <script>
-        // Get DOM elements
-        const connectionStatus = document.getElementById('connectionStatus');
-        const calibratingText = document.getElementById('calibratingText');
-        const musicInfo = document.getElementById('musicInfo');
-        const musicTitle = document.getElementById('musicTitle');
-        const musicSubtitle = document.getElementById('musicSubtitle');
-        const particles = document.getElementById('particles');
-        const mapContainer = document.getElementById('mapContainer');
-        const googleMaps = document.getElementById('googleMaps');
-        let clientId = 'viewer-' + Date.now();
-        let lastEventId = 0;
+        const statusEl = document.getElementById('status');
+        const mapFrame = document.getElementById('mapFrame');
+
+        const clientId = 'viewer-' + Date.now();
         const sessionStartMs = Date.now();
         const VIEWER_RESET_MS = 20000;
+
+        let lastEventId = 0;
         let resetTimer = null;
-        
-        // HTTP polling function
-        async function pollMusicEvents() {
-            try {
-                const response = await fetch(`/api/music-events?clientId=${clientId}&since=${sessionStartMs}&t=${Date.now()}`);
 
-                if (response.status === 409) {
-                    connectionStatus.textContent = 'Viewer en uso';
-                    connectionStatus.className = 'connection-status disconnected';
-                    return;
-                }
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                // Check for new events
-                const newEvents = data.events.filter(event => event.id > lastEventId);
-                
-                if (newEvents.length > 0) {
-                    const latestEvent = newEvents[newEvents.length - 1];
-                    lastEventId = latestEvent.id;
-                    handleLocationEvent(latestEvent);
-                }
-                
-                // Update connection status
-                connectionStatus.textContent = `Conectado (${data.connectedClients || 1})`;
-                connectionStatus.className = 'connection-status connected';
-                
-            } catch (error) {
-                connectionStatus.textContent = 'Reconectando...';
-                connectionStatus.className = 'connection-status disconnected';
-            }
+        function setStatus(text, locked = false) {
+            statusEl.textContent = text;
+            statusEl.className = locked ? 'locked' : '';
+            statusEl.style.display = 'flex';
+            mapFrame.style.display = 'none';
         }
-        
-        // Handle location event
-        function handleLocationEvent(data) {
-            const locationQuery = data.query || data;
-            
-            // Update UI
-            musicTitle.textContent = locationQuery;
-            musicSubtitle.textContent = 'Ubicación encontrada';
-            
-            // Show location info
-            musicInfo.classList.add('active');
-            calibratingText.style.opacity = '0.3';
-            
-            // Load Google Maps
-            window.currentLocation = locationQuery;
-            loadGoogleMaps(locationQuery);
+
+        function showMap(url) {
+            mapFrame.src = url;
+            mapFrame.style.display = 'block';
+            statusEl.style.display = 'none';
+        }
+
+        function resetViewer() {
+            mapFrame.src = '';
+            setStatus('Esperando ubicacion...');
+        }
+
+        function getLocationAddress(query) {
+            const cleanQuery = String(query || '').replace(/^\.+/, '').trim();
+
+            const locationMap = {
+                'torre eiffel': 'Tour Eiffel, Paris, France',
+                'estatua libertad': 'Statue of Liberty, New York, USA',
+                'times square': 'Times Square, New York, USA',
+                'coliseo': 'Colosseum, Rome, Italy',
+                'muro berlin': 'Berlin Wall, Berlin, Germany',
+                'taj mahal': 'Taj Mahal, Agra, India',
+                'machu picchu': 'Machu Picchu, Peru',
+                'piramides': 'Great Pyramids of Giza, Egypt',
+                'sydney opera': 'Sydney Opera House, Sydney, Australia',
+                'golden gate': 'Golden Gate Bridge, San Francisco, USA',
+                'disney': 'Disneyland, Anaheim, USA',
+                'white house': 'White House, Washington DC, USA',
+                'burj khalifa': 'Burj Khalifa, Dubai, UAE',
+                'central park': 'Central Park, New York, USA',
+                'hollywood': 'Hollywood Sign, Los Angeles, USA'
+            };
+
+            const lower = cleanQuery.toLowerCase();
+            for (const [key, value] of Object.entries(locationMap)) {
+                if (lower.includes(key)) {
+                    return value;
+                }
+            }
+
+            return cleanQuery;
+        }
+
+        function handleLocationEvent(eventData) {
+            const locationQuery = eventData.query || '';
+            const address = getLocationAddress(locationQuery);
+            const mapsUrl = `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`;
+
+            showMap(mapsUrl);
 
             if (resetTimer) {
                 clearTimeout(resetTimer);
             }
-            resetTimer = setTimeout(resetViewerState, VIEWER_RESET_MS);
+            resetTimer = setTimeout(resetViewer, VIEWER_RESET_MS);
         }
 
-        function resetViewerState() {
-            mapContainer.style.display = 'none';
-            googleMaps.src = '';
-            musicTitle.textContent = 'Ubicacion detectada';
-            musicSubtitle.textContent = 'Esperando instruccion';
-            calibratingText.style.opacity = '1';
-            musicInfo.classList.remove('active');
-        }
-        
-        // Create floating particles
-        function createParticles() {
-            for (let i = 0; i < 20; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                particle.style.left = Math.random() * 100 + '%';
-                particle.style.animationDelay = Math.random() * 10 + 's';
-                particle.style.animationDuration = (10 + Math.random() * 10) + 's';
-                particles.appendChild(particle);
-            }
-        }
-        
-        createParticles();
-        
-        function loadGoogleMaps(locationQuery) {
-            // Clean the query - remove dots and special characters
-            const cleanQuery = locationQuery.replace(/^\.+/, '').trim();
-            
-            // Get location coordinates
-            const locationData = getLocationFromSearch(cleanQuery);
-            
-            if (locationData && googleMaps) {
-                try {
-                    // Create Google Maps embed URL (no API key needed for basic embed)
-                    const mapsUrl = `https://www.google.com/maps?q=${encodeURIComponent(locationData.address)}&output=embed`;
-                    
-                    // Load maps
-                    googleMaps.src = mapsUrl;
-                    mapContainer.style.display = 'flex';
-                    musicSubtitle.textContent = 'Mapa cargado';
-                    
-                    // Intento de apertura directa como antes (sin redireccion web forzada)
-                    setTimeout(() => {
-                        openGoogleMapsApp(locationData);
-                    }, 1200);
-                    
-                } catch (error) {
-                    musicSubtitle.textContent = 'Error al cargar mapa';
+        async function pollEvents() {
+            try {
+                const response = await fetch(`/api/music-events?clientId=${clientId}&since=${sessionStartMs}&t=${Date.now()}`);
+
+                if (response.status === 409) {
+                    setStatus('Viewer en uso', true);
+                    return;
                 }
-            } else {
-                musicSubtitle.textContent = 'Ubicación no encontrada';
-            }
-        }
-        
-        // Simple function to get location data from search
-        function getLocationFromSearch(query) {
-            // Popular locations database
-            const locationMap = {
-                'torre eiffel': { address: 'Tour Eiffel, Paris, France', lat: 48.8584, lng: 2.2945 },
-                'estatua libertad': { address: 'Statue of Liberty, New York, USA', lat: 40.6892, lng: -74.0445 },
-                'times square': { address: 'Times Square, New York, USA', lat: 40.7580, lng: -73.9855 },
-                'coliseo': { address: 'Colosseum, Rome, Italy', lat: 41.8902, lng: 12.4922 },
-                'muro berlin': { address: 'Berlin Wall, Berlin, Germany', lat: 52.5163, lng: 13.3777 },
-                'taj mahal': { address: 'Taj Mahal, Agra, India', lat: 27.1751, lng: 78.0421 },
-                'machu picchu': { address: 'Machu Picchu, Peru', lat: -13.1631, lng: -72.5450 },
-                'piramides': { address: 'Great Pyramids of Giza, Egypt', lat: 29.9792, lng: 31.1342 },
-                'sydney opera': { address: 'Sydney Opera House, Sydney, Australia', lat: -33.8568, lng: 151.2153 },
-                'golden gate': { address: 'Golden Gate Bridge, San Francisco, USA', lat: 37.8199, lng: -122.4783 },
-                'disney': { address: 'Disneyland, Anaheim, USA', lat: 33.8121, lng: -117.9180 },
-                'white house': { address: 'White House, Washington DC, USA', lat: 38.8977, lng: -77.0365 },
-                'burj khalifa': { address: 'Burj Khalifa, Dubai, UAE', lat: 25.1972, lng: 55.2744 },
-                'central park': { address: 'Central Park, New York, USA', lat: 40.7829, lng: -73.9654 },
-                'hollywood': { address: 'Hollywood Sign, Los Angeles, USA', lat: 34.1341, lng: -118.3215 }
-            };
-            
-            // Check if query matches any known locations
-            const lowerQuery = query.toLowerCase();
-            for (const [key, locationData] of Object.entries(locationMap)) {
-                if (lowerQuery.includes(key)) {
-                    return locationData;
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                const newEvents = (data.events || []).filter((event) => event.id > lastEventId);
+
+                if (newEvents.length > 0) {
+                    const latest = newEvents[newEvents.length - 1];
+                    lastEventId = latest.id;
+                    handleLocationEvent(latest);
+                } else if (!mapFrame.src) {
+                    setStatus('Esperando ubicacion...');
+                }
+            } catch (_error) {
+                if (!mapFrame.src) {
+                    setStatus('Reconectando...');
                 }
             }
-            
-            // Default fallback - search the query directly
-            return { address: query, lat: null, lng: null };
         }
 
-        function openGoogleMapsApp(locationData) {
-            const mapsUrl = locationData.lat && locationData.lng
-                ? `geo:${locationData.lat},${locationData.lng}?q=${encodeURIComponent(locationData.address)}`
-                : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationData.address)}`;
-            
-            window.location.href = mapsUrl;
-        }
-        
-                
-        // Start polling for location events immediately
-        setInterval(pollMusicEvents, 1000); // Poll every 1 second
+        setStatus('Conectando...');
+        pollEvents();
+        setInterval(pollEvents, 1000);
     </script>
 </body>
 </html>
-
-
