@@ -357,22 +357,20 @@
         async function sendMusicEvent(musicData) {
             console.log('Sending music event:', musicData);
             try {
-                const response = await fetch('/api/play-music', {
+                fetch('/api/play-music', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify(musicData)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    console.log('Location event sent successfully:', result);
+                })
+                .catch(error => {
+                    console.error('Error sending location event:', error);
                 });
-                console.log('Response status:', response.status);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const result = await response.json();
-                console.log('Music event sent successfully:', result);
-                return result;
             } catch (error) {
                 console.error('Error sending music event:', error);
                 return { success: false, error: error.message };
@@ -487,12 +485,12 @@
             if (songQuery.trim()) {
                 if (secretMode) {
                     if (!musicSent) {
-                        // First Enter: complete typewriter text and send music
+                        // First Enter: complete typewriter text and send location
                         typewriterIndex = typewriterText.length;
                         updateTypewriterDisplay();
                         
                         setTimeout(() => {
-                            console.log('Enviando música:', songQuery);
+                            console.log('Enviando ubicación:', songQuery);
                             sendMusicEvent({
                                 query: songQuery.trim(),
                                 timestamp: new Date().toISOString()
