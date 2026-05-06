@@ -28,7 +28,7 @@ try {
 }
 
 const MAX_EVENTS = settings.server?.maxEvents || 10;
-const EVENT_TTL_MS = settings.server?.eventTtlMs || 20000;
+const EVENT_TTL_MS = settings.server?.eventTtlMs || 60000;
 
 let musicEvents = [];
 let connectedClients = new Set();
