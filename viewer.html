@@ -185,14 +185,36 @@
                 
         // Open Google Maps app on mobile
         function openGoogleMapsApp(locationData) {
-            const mapsUrl = locationData.lat && locationData.lng 
-                ? `geo:${locationData.lat},${locationData.lng}?q=${encodeURIComponent(locationData.address)}`
-                : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationData.address)}`;
+            const encodedAddress = encodeURIComponent(locationData.address);
+            const hasCoords = locationData.lat && locationData.lng;
+            const userAgent = navigator.userAgent || '';
+            const isAndroid = /Android/i.test(userAgent);
+            const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
+
+            const webUrl = hasCoords
+                ? `https://www.google.com/maps/search/?api=1&query=${locationData.lat},${locationData.lng}`
+                : `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+
+            if (isAndroid) {
+                const query = hasCoords ? `${locationData.lat},${locationData.lng}` : locationData.address;
+                const intentUrl = `intent://maps.google.com/maps?q=${encodeURIComponent(query)}#Intent;scheme=https;package=com.google.android.apps.maps;end`;
+                window.location.href = intentUrl;
+                setTimeout(() => {
+                    window.location.href = webUrl;
+                }, 1200);
+            } else if (isIOS) {
+                const iosUrl = hasCoords
+                    ? `comgooglemaps://?q=${locationData.lat},${locationData.lng}`
+                    : `comgooglemaps://?q=${encodedAddress}`;
+                window.location.href = iosUrl;
+                setTimeout(() => {
+                    window.location.href = webUrl;
+                }, 1200);
+            } else {
+                window.location.href = webUrl;
+            }
             
-            // Try to open in Google Maps app
-            window.location.href = mapsUrl;
-            
-            musicSubtitle.textContent = '¡Abriendo Google Maps!';
+            musicSubtitle.textContent = 'Abriendo Google Maps...';
         }
         
         // Start polling for location events immediately
@@ -200,3 +222,4 @@
     </script>
 </body>
 </html>
+
