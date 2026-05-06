@@ -162,7 +162,7 @@
             }
 
             const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentAddress)}`;
-            window.location.href = mapsUrl;
+            window.location.replace(mapsUrl);
         });
     </script>
 </body>
