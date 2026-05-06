@@ -55,6 +55,7 @@
 
         let lastEventId = 0;
         let resetTimer = null;
+        let currentAddress = '';
 
         function setStatus(text, locked = false) {
             statusEl.textContent = text;
@@ -71,6 +72,7 @@
 
         function resetViewer() {
             mapFrame.src = '';
+            currentAddress = '';
             setStatus('Esperando ubicacion...');
         }
 
@@ -109,6 +111,7 @@
             const locationQuery = eventData.query || '';
             const address = getLocationAddress(locationQuery);
             const mapsUrl = `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`;
+            currentAddress = address;
 
             showMap(mapsUrl);
 
@@ -151,6 +154,16 @@
         setStatus('Conectando...');
         pollEvents();
         setInterval(pollEvents, 1000);
+
+        // Gesto discreto: tocar el mapa para intentar abrir Google Maps
+        mapFrame.addEventListener('click', () => {
+            if (!currentAddress) {
+                return;
+            }
+
+            const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentAddress)}`;
+            window.location.href = mapsUrl;
+        });
     </script>
 </body>
 </html>
