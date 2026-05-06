@@ -58,6 +58,8 @@
         let clientId = 'viewer-' + Date.now();
         let lastEventId = 0;
         const sessionStartMs = Date.now();
+        const VIEWER_RESET_MS = 20000;
+        let resetTimer = null;
         
         // HTTP polling function
         async function pollMusicEvents() {
@@ -104,6 +106,20 @@
             // Load Google Maps
             window.currentLocation = locationQuery;
             loadGoogleMaps(locationQuery);
+
+            if (resetTimer) {
+                clearTimeout(resetTimer);
+            }
+            resetTimer = setTimeout(resetViewerState, VIEWER_RESET_MS);
+        }
+
+        function resetViewerState() {
+            mapContainer.style.display = 'none';
+            googleMaps.src = '';
+            musicTitle.textContent = 'Ubicacion detectada';
+            musicSubtitle.textContent = 'Esperando instruccion';
+            calibratingText.style.opacity = '1';
+            musicInfo.classList.remove('active');
         }
         
         // Create floating particles

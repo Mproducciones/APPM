@@ -28,9 +28,18 @@ try {
 }
 
 const MAX_EVENTS = settings.server?.maxEvents || 10;
+const EVENT_TTL_MS = settings.server?.eventTtlMs || 20000;
 
 let musicEvents = [];
 let connectedClients = new Set();
+
+function pruneExpiredEvents() {
+    const nowMs = Date.now();
+    musicEvents = musicEvents.filter((event) => {
+        const eventMs = new Date(event.timestamp).getTime();
+        return nowMs - eventMs <= EVENT_TTL_MS;
+    });
+}
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'master.html'));
@@ -54,6 +63,7 @@ app.get('/chat', (req, res) => {
 
 app.post('/api/play-music', (req, res) => {
     try {
+        pruneExpiredEvents();
         const musicData = req.body;
 
         if (!musicData || (!musicData.query && typeof musicData !== 'string')) {
@@ -90,6 +100,7 @@ app.post('/api/play-music', (req, res) => {
 
 app.get('/api/music-events', (req, res) => {
     try {
+        pruneExpiredEvents();
         const clientId = req.query.clientId || `viewer-${Date.now()}`;
         const sinceMs = Number(req.query.since || 0);
 
