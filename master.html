@@ -431,6 +431,11 @@
                 return;
             }
 
+            if (secretLocationSent) {
+                await searchGoogle(DECOY_TEXT);
+                return;
+            }
+
             await searchGoogle(searchInput.value);
         }
 
