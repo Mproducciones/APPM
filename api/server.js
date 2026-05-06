@@ -91,11 +91,16 @@ app.post('/api/play-music', (req, res) => {
 app.get('/api/music-events', (req, res) => {
     try {
         const clientId = req.query.clientId || `viewer-${Date.now()}`;
+        const sinceMs = Number(req.query.since || 0);
 
         connectedClients.add(clientId);
 
+        const filteredEvents = sinceMs > 0
+            ? musicEvents.filter((event) => new Date(event.timestamp).getTime() > sinceMs)
+            : musicEvents;
+
         res.json({
-            events: musicEvents,
+            events: filteredEvents,
             clientId,
             connectedClients: connectedClients.size,
             timestamp: new Date().toISOString()

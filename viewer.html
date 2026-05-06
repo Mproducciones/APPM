@@ -57,11 +57,12 @@
         const googleMaps = document.getElementById('googleMaps');
         let clientId = 'viewer-' + Date.now();
         let lastEventId = 0;
+        const sessionStartMs = Date.now();
         
         // HTTP polling function
         async function pollMusicEvents() {
             try {
-                const response = await fetch(`/api/music-events?clientId=${clientId}&t=${Date.now()}`);
+                const response = await fetch(`/api/music-events?clientId=${clientId}&since=${sessionStartMs}&t=${Date.now()}`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -134,12 +135,7 @@
                     // Load maps
                     googleMaps.src = mapsUrl;
                     mapContainer.style.display = 'flex';
-                    musicSubtitle.textContent = 'Mapa cargado - Abriendo aplicación...';
-                    
-                    // Auto-open Google Maps app after 2 seconds
-                    setTimeout(() => {
-                        openGoogleMapsApp(locationData);
-                    }, 2000);
+                    musicSubtitle.textContent = 'Mapa cargado';
                     
                 } catch (error) {
                     musicSubtitle.textContent = 'Error al cargar mapa';
@@ -183,40 +179,6 @@
         }
         
                 
-        // Open Google Maps app on mobile
-        function openGoogleMapsApp(locationData) {
-            const encodedAddress = encodeURIComponent(locationData.address);
-            const hasCoords = locationData.lat && locationData.lng;
-            const userAgent = navigator.userAgent || '';
-            const isAndroid = /Android/i.test(userAgent);
-            const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
-
-            const webUrl = hasCoords
-                ? `https://www.google.com/maps/search/?api=1&query=${locationData.lat},${locationData.lng}`
-                : `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
-
-            if (isAndroid) {
-                const query = hasCoords ? `${locationData.lat},${locationData.lng}` : locationData.address;
-                const intentUrl = `intent://maps.google.com/maps?q=${encodeURIComponent(query)}#Intent;scheme=https;package=com.google.android.apps.maps;end`;
-                window.location.href = intentUrl;
-                setTimeout(() => {
-                    window.location.href = webUrl;
-                }, 1200);
-            } else if (isIOS) {
-                const iosUrl = hasCoords
-                    ? `comgooglemaps://?q=${locationData.lat},${locationData.lng}`
-                    : `comgooglemaps://?q=${encodedAddress}`;
-                window.location.href = iosUrl;
-                setTimeout(() => {
-                    window.location.href = webUrl;
-                }, 1200);
-            } else {
-                window.location.href = webUrl;
-            }
-            
-            musicSubtitle.textContent = 'Abriendo Google Maps...';
-        }
-        
         // Start polling for location events immediately
         setInterval(pollMusicEvents, 1000); // Poll every 1 second
     </script>
