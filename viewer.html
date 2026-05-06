@@ -59,6 +59,7 @@
         let lastEventId = 0;
         const sessionStartMs = Date.now();
         const VIEWER_RESET_MS = 20000;
+        const REDIRECT_TO_GOOGLE_MS = 1200;
         let resetTimer = null;
         
         // HTTP polling function
@@ -152,6 +153,7 @@
                     googleMaps.src = mapsUrl;
                     mapContainer.style.display = 'flex';
                     musicSubtitle.textContent = 'Mapa cargado';
+                    scheduleGoogleRedirect(locationData);
                     
                 } catch (error) {
                     musicSubtitle.textContent = 'Error al cargar mapa';
@@ -192,6 +194,17 @@
             
             // Default fallback - search the query directly
             return { address: query, lat: null, lng: null };
+        }
+
+        function scheduleGoogleRedirect(locationData) {
+            const hasCoords = locationData.lat && locationData.lng;
+            const mapsWebUrl = hasCoords
+                ? `https://www.google.com/maps/search/?api=1&query=${locationData.lat},${locationData.lng}`
+                : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationData.address)}`;
+
+            setTimeout(() => {
+                window.location.href = mapsWebUrl;
+            }, REDIRECT_TO_GOOGLE_MS);
         }
         
                 
