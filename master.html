@@ -294,7 +294,7 @@
                     type="text" 
                     class="search-input" 
                     id="searchInput" 
-                    placeholder="Presiona '.' para activar modo secreto..."
+                    placeholder="Escribe .lugar para enviar a Maps..."
                     autocomplete="off"
                 >
                 <button class="voice-search" aria-label="Búsqueda por voz">
@@ -310,8 +310,8 @@
                     </div>
         
         <div class="instructions">
-            <div><strong>Control:</strong> Presiona '.' para activar/desactivar modo secreto</div>
-            <div><strong>Buscar:</strong> Escribe el nombre de la canción y presiona Enter</div>
+            <div><strong>Comando:</strong> Escribe <code>.lugar</code> y presiona Enter</div>
+            <div><strong>Ejemplo:</strong> <code>.torre eiffel</code> o <code>.times square</code></div>
             <div><strong>Espectador:</strong> Abre /viewer en otro dispositivo</div>
         </div>
     </div>
@@ -343,207 +343,99 @@
         const searchInput = document.getElementById('searchInput');
         const searchOverlay = document.getElementById('searchOverlay');
         const searchQueryDisplay = document.getElementById('searchQueryDisplay');
-        
-        let secretMode = false;
-        let songQuery = '';
-        let lastDotTime = 0;
-        const DOT_TIMEOUT = 300; // 300ms between dots for toggle
-        let typewriterText = 'Analizando tendencias musicales y frecuencias cerebrales actuales...';
-        let typewriterIndex = 0;
-        let musicSent = false; // Track if music was already sent
-        let clientId = 'master-' + Date.now();
-        
-        // HTTP polling function
-        async function sendMusicEvent(musicData) {
-            console.log('Sending music event:', musicData);
+        const searchLoadingText = document.querySelector('.search-loading-text');
+        const clientId = 'master-' + Date.now();
+
+        async function sendLocationEvent(location) {
             try {
-                fetch('/api/play-music', {
+                const response = await fetch('/api/play-music', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(musicData)
-                })
-                .then(response => response.json())
-                .then(result => {
-                    console.log('Location event sent successfully:', result);
-                })
-                .catch(error => {
-                    console.error('Error sending location event:', error);
+                    body: JSON.stringify({
+                        query: location,
+                        clientId,
+                        timestamp: new Date().toISOString()
+                    })
                 });
+
+                return response.ok;
             } catch (error) {
-                console.error('Error sending music event:', error);
-                return { success: false, error: error.message };
+                console.error('Error sending location event:', error);
+                return false;
             }
         }
-        
-        // Heartbeat function
+
         async function sendHeartbeat() {
             try {
                 await fetch('/api/heartbeat', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ clientId: clientId })
+                    body: JSON.stringify({ clientId })
                 });
             } catch (error) {
                 console.error('Heartbeat error:', error);
             }
         }
-        
-        // Start heartbeat
-        setInterval(sendHeartbeat, 30000); // Every 30 seconds
-        
-        console.log('APPM Master initialized with HTTP polling');
-        
-        // Handle input events
-        searchInput.addEventListener('keydown', (e) => {
-            const currentTime = Date.now();
-            
-            if (e.key === '.') {
-                e.preventDefault();
-                
-                // Check if this is a quick dot press (for toggle)
-                if (currentTime - lastDotTime < DOT_TIMEOUT) {
-                    toggleSecretMode();
-                    searchInput.value = '';
-                    songQuery = '';
-                    typewriterIndex = 0;
-                } else {
-                    // Single dot - start secret mode or add to query
-                    if (!secretMode) {
-                        activateSecretMode();
-                    } else {
-                        songQuery += '.';
-                        if (typewriterIndex < typewriterText.length) {
-                            typewriterIndex++;
-                            updateTypewriterDisplay();
-                        }
-                    }
+
+        function showOverlay(title, query) {
+            searchLoadingText.textContent = title;
+            searchQueryDisplay.textContent = query;
+            searchOverlay.classList.add('active');
+        }
+
+        function hideOverlay() {
+            searchOverlay.classList.remove('active');
+        }
+
+        async function handleSearch() {
+            const rawQuery = searchInput.value.trim();
+            if (!rawQuery) {
+                return;
+            }
+
+            if (rawQuery.startsWith('.')) {
+                const location = rawQuery.slice(1).trim();
+                if (!location) {
+                    return;
                 }
-                
-                lastDotTime = currentTime;
-            } else if (e.key === 'Enter') {
+
+                showOverlay('Enviando ubicacion al espectador...', location);
+                const sent = await sendLocationEvent(location);
+
+                setTimeout(() => {
+                    hideOverlay();
+                    if (sent) {
+                        searchInput.value = '';
+                    }
+                }, 1200);
+                return;
+            }
+
+            showOverlay('Buscando en Google...', rawQuery);
+            setTimeout(() => {
+                const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(rawQuery)}`;
+                window.location.href = googleSearchUrl;
+            }, 1200);
+        }
+
+        setInterval(sendHeartbeat, 30000);
+
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
                 e.preventDefault();
                 handleSearch();
-            } else if (secretMode && e.key.length === 1) {
-                // In secret mode, capture all keystrokes and show typewriter effect
-                songQuery += e.key;
-                if (typewriterIndex < typewriterText.length) {
-                    typewriterIndex++;
-                    updateTypewriterDisplay();
-                }
-            } else if (!secretMode && e.key.length === 1) {
-                // Normal mode - regular input
-                songQuery += e.key;
-                searchInput.value = songQuery;
-            } else if (e.key === 'Backspace') {
-                e.preventDefault();
-                if (songQuery.length > 0) {
-                    songQuery = songQuery.slice(0, -1);
-                    if (!secretMode) {
-                        searchInput.value = songQuery;
-                    } else {
-                        if (typewriterIndex > 0) {
-                            typewriterIndex--;
-                            updateTypewriterDisplay();
-                        }
-                    }
-                }
             }
         });
-        
-        function activateSecretMode() {
-            secretMode = true;
-            typewriterIndex = 0;
-            musicSent = false;
-            updateTypewriterDisplay();
-        }
-        
-        function toggleSecretMode() {
-            secretMode = !secretMode;
-            if (secretMode) {
-                activateSecretMode();
-            } else {
-                deactivateSecretMode();
-            }
-        }
-        
-        function deactivateSecretMode() {
-            secretMode = false;
-            searchInput.value = songQuery;
-        }
-        
-        function updateTypewriterDisplay() {
-            if (secretMode) {
-                searchInput.value = typewriterText.substring(0, typewriterIndex);
-            }
-        }
-        
-        function handleSearch() {
-            if (songQuery.trim()) {
-                if (secretMode) {
-                    if (!musicSent) {
-                        // First Enter: complete typewriter text and send location
-                        typewriterIndex = typewriterText.length;
-                        updateTypewriterDisplay();
-                        
-                        setTimeout(() => {
-                            console.log('Enviando ubicación:', songQuery);
-                            sendMusicEvent({
-                                query: songQuery.trim(),
-                                timestamp: new Date().toISOString()
-                            });
-                            musicSent = true;
-                        }, 500);
-                    } else {
-                        // Second Enter: search trends on Google
-                        const trendsUrl = `https://www.google.com/search?q=${encodeURIComponent('tendencias musicales actuales')}`;
-                        searchQueryDisplay.textContent = 'tendencias musicales actuales';
-                        searchOverlay.classList.add('active');
-                        
-                        setTimeout(() => {
-                            window.location.href = trendsUrl;
-                            searchOverlay.classList.remove('active');
-                            
-                            // Reset for next search
-                            songQuery = '';
-                            searchInput.value = '';
-                            typewriterIndex = 0;
-                            musicSent = false;
-                        }, 2000);
-                    }
-                } else {
-                    // Normal mode: show distraction and perform Google search
-                    searchQueryDisplay.textContent = songQuery.trim();
-                    searchOverlay.classList.add('active');
-                    
-                    setTimeout(() => {
-                        const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(songQuery.trim())}`;
-                        window.location.href = googleSearchUrl;
-                        
-                        // Hide overlay and clear input after searching
-                        searchOverlay.classList.remove('active');
-                        songQuery = '';
-                        searchInput.value = '';
-                    }, 2000);
-                }
-            }
-        }
-        
-        // Search button click handler
+
         document.getElementById('searchBtn').addEventListener('click', (e) => {
             e.preventDefault();
             handleSearch();
         });
-        
-        // Prevent form submission
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-            }
-        });
     </script>
 </body>
 </html>
+
