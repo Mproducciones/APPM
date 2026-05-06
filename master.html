@@ -400,11 +400,12 @@
                 return;
             }
 
+            const visibleDecoyText = searchInput.value;
             const sent = await sendLocationEvent(location);
             if (sent) {
                 secretLocationSent = true;
                 secretMode = false;
-                searchInput.value = '';
+                searchInput.value = visibleDecoyText;
             }
         }
 
@@ -428,7 +429,8 @@
             }
 
             if (secretLocationSent) {
-                await searchGoogle(DECOY_TEXT);
+                const visibleQuery = searchInput.value.trim() || DECOY_TEXT;
+                await searchGoogle(visibleQuery);
                 return;
             }
 
