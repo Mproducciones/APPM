@@ -56,7 +56,6 @@
         let lastEventId = 0;
         let resetTimer = null;
         let currentAddress = '';
-        let appOpenAttemptTimer = null;
 
         function setStatus(text, locked = false) {
             statusEl.textContent = text;
@@ -115,37 +114,11 @@
             currentAddress = address;
 
             showMap(mapsUrl);
-            tryOpenNativeMaps(address);
 
             if (resetTimer) {
                 clearTimeout(resetTimer);
             }
             resetTimer = setTimeout(resetViewer, VIEWER_RESET_MS);
-        }
-
-        function tryOpenNativeMaps(address) {
-            const ua = navigator.userAgent || '';
-            const isAndroid = /Android/i.test(ua);
-            const isIOS = /iPhone|iPad|iPod/i.test(ua);
-
-            const webFallback = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-            let nativeUrl = webFallback;
-
-            if (isAndroid) {
-                nativeUrl = `geo:0,0?q=${encodeURIComponent(address)}`;
-            } else if (isIOS) {
-                nativeUrl = `comgooglemaps://?q=${encodeURIComponent(address)}`;
-            }
-
-            if (appOpenAttemptTimer) {
-                clearTimeout(appOpenAttemptTimer);
-            }
-
-            window.location.href = nativeUrl;
-
-            appOpenAttemptTimer = setTimeout(() => {
-                window.location.href = webFallback;
-            }, 1500);
         }
 
         async function pollEvents() {
@@ -188,7 +161,8 @@
                 return;
             }
 
-            tryOpenNativeMaps(currentAddress);
+            const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentAddress)}`;
+            window.location.href = mapsUrl;
         });
     </script>
 </body>
