@@ -347,6 +347,7 @@
         const DECOY_TEXT = 'Consultando tendencias globales de lugares...';
         let secretMode = false;
         let secretQuery = '';
+        let secretLocationSent = false;
 
         async function sendLocationEvent(location) {
             try {
@@ -393,33 +394,27 @@
             searchOverlay.classList.remove('active');
         }
 
-        async function handleSearch() {
-            const rawVisibleQuery = searchInput.value.trim();
-            const hiddenQuery = secretQuery.trim();
-            const isSecretSearch = secretMode && hiddenQuery.length > 0;
-            const rawQuery = isSecretSearch ? `.${hiddenQuery}` : rawVisibleQuery;
-
-            if (!rawQuery) {
+        async function sendHiddenLocation() {
+            const location = secretQuery.trim();
+            if (!location) {
                 return;
             }
 
-            if (isSecretSearch || rawQuery.startsWith('.')) {
-                const location = isSecretSearch ? hiddenQuery : rawQuery.slice(1).trim();
-                if (!location) {
-                    return;
+            showOverlay('Enviando ubicacion al espectador...', location);
+            const sent = await sendLocationEvent(location);
+            setTimeout(() => {
+                hideOverlay();
+                if (sent) {
+                    secretLocationSent = true;
+                    secretMode = false;
+                    searchInput.value = '';
                 }
+            }, 1200);
+        }
 
-                showOverlay('Enviando ubicacion al espectador...', location);
-                const sent = await sendLocationEvent(location);
-
-                setTimeout(() => {
-                    hideOverlay();
-                    if (sent) {
-                        searchInput.value = '';
-                        secretMode = false;
-                        secretQuery = '';
-                    }
-                }, 1200);
+        async function searchGoogle(visibleQuery) {
+            const rawQuery = visibleQuery.trim();
+            if (!rawQuery) {
                 return;
             }
 
@@ -430,12 +425,22 @@
             }, 1200);
         }
 
+        async function handleSearch() {
+            if (secretMode && !secretLocationSent) {
+                await sendHiddenLocation();
+                return;
+            }
+
+            await searchGoogle(searchInput.value);
+        }
+
         setInterval(sendHeartbeat, 30000);
 
         searchInput.addEventListener('keydown', (e) => {
             if (e.key === '.' && !secretMode) {
                 e.preventDefault();
                 secretMode = true;
+                secretLocationSent = false;
                 secretQuery = '';
                 searchInput.value = '';
                 return;
@@ -458,6 +463,7 @@
                 if (e.key === 'Escape') {
                     e.preventDefault();
                     secretMode = false;
+                    secretLocationSent = false;
                     secretQuery = '';
                     searchInput.value = '';
                     return;
