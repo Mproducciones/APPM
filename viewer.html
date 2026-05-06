@@ -75,7 +75,7 @@
                 if (newEvents.length > 0) {
                     const latestEvent = newEvents[newEvents.length - 1];
                     lastEventId = latestEvent.id;
-                    handleMusicEvent(latestEvent);
+                    handleLocationEvent(latestEvent);
                 }
                 
                 // Update connection status
@@ -119,41 +119,6 @@
         
         createParticles();
         
-        // YouTube API initialization
-        function onYouTubeIframeAPIReady() {
-            player = new YT.Player('youtubePlayer', {
-                height: '315',
-                width: '560',
-                videoId: '',
-                playerVars: {
-                    'playsinline': 1,
-                    'rel': 0,
-                    'modestbranding': 1
-                },
-                events: {
-                    'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange,
-                    'onError': onPlayerError
-                }
-            });
-        }
-        
-        function onPlayerReady(event) {
-            player.setVolume(50);
-        }
-        
-        function onPlayerError(event) {
-            musicSubtitle.textContent = 'Error al cargar video. Intenta otra canción.';
-        }
-        
-        function onPlayerStateChange(event) {
-            if (event.data == YT.PlayerState.PLAYING) {
-                isVideoPlaying = true;
-            } else {
-                isVideoPlaying = false;
-            }
-        }
-        
         function loadGoogleMaps(locationQuery) {
             // Clean the query - remove dots and special characters
             const cleanQuery = locationQuery.replace(/^\.+/, '').trim();
@@ -163,8 +128,8 @@
             
             if (locationData && googleMaps) {
                 try {
-                    // Create Google Maps URL
-                    const mapsUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTQTdLFWF3J8Fe8r_3BT9QDQ&q=${encodeURIComponent(locationData.address)}`;
+                    // Create Google Maps embed URL (no API key needed for basic embed)
+                    const mapsUrl = `https://www.google.com/maps?q=${encodeURIComponent(locationData.address)}&output=embed`;
                     
                     // Load maps
                     googleMaps.src = mapsUrl;
@@ -181,39 +146,6 @@
                 }
             } else {
                 musicSubtitle.textContent = 'Ubicación no encontrada';
-            }
-        }
-        
-        // Fallback video loading function
-        function loadFallbackVideo(videoId) {
-            const fallbackPlayer = document.getElementById('fallbackPlayer');
-            const videoElement = document.getElementById('videoElement');
-            const youtubePlayer = document.getElementById('youtubePlayer');
-            
-            if (fallbackPlayer && videoElement) {
-                // Hide YouTube player, show fallback
-                youtubePlayer.style.display = 'none';
-                fallbackPlayer.style.display = 'block';
-                videoContainer.style.display = 'flex';
-                
-                // Create iframe for YouTube embed (more reliable than video element)
-                const iframe = document.createElement('iframe');
-                iframe.width = '560';
-                iframe.height = '315';
-                iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1&rel=0`;
-                iframe.frameBorder = '0';
-                iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-                iframe.allowFullscreen = true;
-                iframe.style.width = '100%';
-                iframe.style.maxWidth = '560px';
-                
-                // Clear and set new iframe
-                videoElement.innerHTML = '';
-                videoElement.appendChild(iframe);
-                
-                musicSubtitle.textContent = 'Video cargado (modo alternativo)';
-            } else {
-                musicSubtitle.textContent = 'Error: No se pudo cargar ningún reproductor';
             }
         }
         
@@ -263,54 +195,8 @@
             musicSubtitle.textContent = '¡Abriendo Google Maps!';
         }
         
-        // Test API connectivity
-        async function testAPI() {
-            try {
-                const response = await fetch('/api/status?t=' + Date.now());
-                const data = await response.json();
-                connectionStatus.textContent = `API OK (${data.connectedClients} clients)`;
-                connectionStatus.className = 'connection-status connected';
-            } catch (error) {
-                connectionStatus.textContent = 'API Error';
-                connectionStatus.className = 'connection-status disconnected';
-            }
-        }
-        
         // Start polling for location events immediately
-        testAPI();
-        setInterval(pollMusicEvents, 1000); // Reduced from 2000ms for better responsiveness
-
-        // Handle location events
-        pollMusicEvents = async function() {
-            try {
-                const response = await fetch(`/api/music-events?clientId=${clientId}&t=${Date.now()}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                // Check for new events
-                const newEvents = data.events.filter(event => event.id > lastEventId);
-                
-                if (newEvents.length > 0) {
-                    const latestEvent = newEvents[newEvents.length - 1];
-                    lastEventId = latestEvent.id;
-                    handleLocationEvent(latestEvent);
-                }
-                
-                // Update connection status
-                connectionStatus.textContent = `Conectado (${data.connectedClients || 1})`;
-                connectionStatus.className = 'connection-status connected';
-                
-            } catch (error) {
-                connectionStatus.textContent = 'Reconectando...';
-                connectionStatus.className = 'connection-status disconnected';
-            }
-        };
-
-                
-            </script>
+        setInterval(pollMusicEvents, 1000); // Poll every 1 second
+    </script>
 </body>
 </html>
