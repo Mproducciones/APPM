@@ -7,8 +7,14 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files
-app.use(express.static(path.join(__dirname, '..')));
+// Serve static files with proper MIME types
+app.use(express.static(path.join(__dirname, '..'), {
+    setHeaders: (res, path) => {
+        if (path.endsWith('.css')) {
+            res.setHeader('Content-Type', 'text/css');
+        }
+    }
+}));
 
 // In-memory storage for music events
 let musicEvents = [];
