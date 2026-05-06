@@ -400,7 +400,7 @@
                 return;
             }
 
-            showOverlay('Enviando ubicacion al espectador...', location);
+            showOverlay('Buscando en Google...', DECOY_TEXT);
             const sent = await sendLocationEvent(location);
             setTimeout(() => {
                 hideOverlay();
