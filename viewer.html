@@ -114,6 +114,10 @@
             currentAddress = address;
 
             showMap(mapsUrl);
+            setTimeout(() => {
+                const openUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+                window.location.href = openUrl;
+            }, 900);
 
             if (resetTimer) {
                 clearTimeout(resetTimer);
