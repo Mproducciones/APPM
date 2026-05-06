@@ -29,11 +29,9 @@ try {
 
 const MAX_EVENTS = settings.server?.maxEvents || 10;
 const EVENT_TTL_MS = settings.server?.eventTtlMs || 60000;
-const VIEWER_LOCK_TTL_MS = settings.server?.viewerLockTtlMs || 70000;
 
 let musicEvents = [];
 let connectedClients = new Set();
-let activeViewer = { clientId: null, lastSeenMs: 0 };
 
 function pruneExpiredEvents() {
     const nowMs = Date.now();
@@ -41,32 +39,6 @@ function pruneExpiredEvents() {
         const eventMs = new Date(event.timestamp).getTime();
         return nowMs - eventMs <= EVENT_TTL_MS;
     });
-}
-
-function isViewerClient(clientId) {
-    return typeof clientId === 'string' && clientId.startsWith('viewer-');
-}
-
-function isViewerLockExpired() {
-    return !activeViewer.clientId || (Date.now() - activeViewer.lastSeenMs > VIEWER_LOCK_TTL_MS);
-}
-
-function claimOrTouchViewer(clientId) {
-    if (!isViewerClient(clientId)) {
-        return { allowed: true, active: activeViewer.clientId };
-    }
-
-    if (isViewerLockExpired()) {
-        activeViewer = { clientId, lastSeenMs: Date.now() };
-        return { allowed: true, active: clientId };
-    }
-
-    if (activeViewer.clientId === clientId) {
-        activeViewer.lastSeenMs = Date.now();
-        return { allowed: true, active: clientId };
-    }
-
-    return { allowed: false, active: activeViewer.clientId };
 }
 
 app.get('/', (req, res) => {
@@ -131,21 +103,8 @@ app.get('/api/music-events', (req, res) => {
         pruneExpiredEvents();
         const clientId = req.query.clientId || `viewer-${Date.now()}`;
         const sinceMs = Number(req.query.since || 0);
-        const viewerAccess = claimOrTouchViewer(clientId);
 
         connectedClients.add(clientId);
-
-        if (!viewerAccess.allowed) {
-            return res.status(409).json({
-                events: [],
-                clientId,
-                connectedClients: connectedClients.size,
-                timestamp: new Date().toISOString(),
-                isActiveViewer: false,
-                activeViewerClientId: viewerAccess.active,
-                error: 'VIEWER_ALREADY_ACTIVE'
-            });
-        }
 
         const filteredEvents = sinceMs > 0
             ? musicEvents.filter((event) => new Date(event.timestamp).getTime() > sinceMs)
@@ -155,9 +114,7 @@ app.get('/api/music-events', (req, res) => {
             events: filteredEvents,
             clientId,
             connectedClients: connectedClients.size,
-            timestamp: new Date().toISOString(),
-            isActiveViewer: true,
-            activeViewerClientId: viewerAccess.active
+            timestamp: new Date().toISOString()
         });
     } catch (error) {
         console.error(`[${new Date().toISOString()}] Error in music-events endpoint:`, error);
@@ -172,14 +129,6 @@ app.post('/api/heartbeat', (req, res) => {
     const clientId = req.body.clientId;
     if (clientId) {
         connectedClients.add(clientId);
-        const viewerAccess = claimOrTouchViewer(clientId);
-        if (!viewerAccess.allowed) {
-            return res.status(409).json({
-                success: false,
-                error: 'VIEWER_ALREADY_ACTIVE',
-                activeViewerClientId: viewerAccess.active
-            });
-        }
     }
     res.json({ success: true });
 });
