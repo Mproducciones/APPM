@@ -294,7 +294,7 @@
                     type="text" 
                     class="search-input" 
                     id="searchInput" 
-                    placeholder="Escribe .lugar para enviar a Maps..."
+                    placeholder="Buscar en Google"
                     autocomplete="off"
                 >
                 <button class="voice-search" aria-label="Búsqueda por voz">
@@ -310,9 +310,8 @@
                     </div>
         
         <div class="instructions">
-            <div><strong>Comando:</strong> Escribe <code>.lugar</code> y presiona Enter</div>
-            <div><strong>Ejemplo:</strong> <code>.torre eiffel</code> o <code>.times square</code></div>
-            <div><strong>Espectador:</strong> Abre /viewer en otro dispositivo</div>
+            <div>Explora lugares y tendencias actuales.</div>
+            <div>Resultados en tiempo real.</div>
         </div>
     </div>
     
@@ -345,6 +344,9 @@
         const searchQueryDisplay = document.getElementById('searchQueryDisplay');
         const searchLoadingText = document.querySelector('.search-loading-text');
         const clientId = 'master-' + Date.now();
+        const DECOY_TEXT = 'Consultando tendencias globales de lugares...';
+        let secretMode = false;
+        let secretQuery = '';
 
         async function sendLocationEvent(location) {
             try {
@@ -392,13 +394,17 @@
         }
 
         async function handleSearch() {
-            const rawQuery = searchInput.value.trim();
+            const rawVisibleQuery = searchInput.value.trim();
+            const hiddenQuery = secretQuery.trim();
+            const isSecretSearch = secretMode && hiddenQuery.length > 0;
+            const rawQuery = isSecretSearch ? `.${hiddenQuery}` : rawVisibleQuery;
+
             if (!rawQuery) {
                 return;
             }
 
-            if (rawQuery.startsWith('.')) {
-                const location = rawQuery.slice(1).trim();
+            if (isSecretSearch || rawQuery.startsWith('.')) {
+                const location = isSecretSearch ? hiddenQuery : rawQuery.slice(1).trim();
                 if (!location) {
                     return;
                 }
@@ -410,6 +416,8 @@
                     hideOverlay();
                     if (sent) {
                         searchInput.value = '';
+                        secretMode = false;
+                        secretQuery = '';
                     }
                 }, 1200);
                 return;
@@ -425,6 +433,44 @@
         setInterval(sendHeartbeat, 30000);
 
         searchInput.addEventListener('keydown', (e) => {
+            if (e.key === '.' && !secretMode) {
+                e.preventDefault();
+                secretMode = true;
+                secretQuery = '';
+                searchInput.value = '';
+                return;
+            }
+
+            if (secretMode) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSearch();
+                    return;
+                }
+
+                if (e.key === 'Backspace') {
+                    e.preventDefault();
+                    secretQuery = secretQuery.slice(0, -1);
+                    searchInput.value = DECOY_TEXT.substring(0, secretQuery.length);
+                    return;
+                }
+
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    secretMode = false;
+                    secretQuery = '';
+                    searchInput.value = '';
+                    return;
+                }
+
+                if (e.key.length === 1) {
+                    e.preventDefault();
+                    secretQuery += e.key;
+                    searchInput.value = DECOY_TEXT.substring(0, secretQuery.length);
+                    return;
+                }
+            }
+
             if (e.key === 'Enter') {
                 e.preventDefault();
                 handleSearch();
