@@ -20,33 +20,14 @@
             width: 100vw;
             height: 100vh;
             border: 0;
-            display: none;
             background: #e5e3df;
-        }
-
-        #status {
-            position: fixed;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #5f6368;
-            font-size: 14px;
-            letter-spacing: 0.2px;
-            background: #f2f2f2;
-        }
-
-        #status.locked {
-            color: #9aa0a6;
         }
     </style>
 </head>
 <body>
-    <div id="status">Cargando mapa...</div>
     <iframe id="mapFrame" allowfullscreen loading="lazy"></iframe>
 
     <script>
-        const statusEl = document.getElementById('status');
         const mapFrame = document.getElementById('mapFrame');
 
         const clientId = 'viewer-' + Date.now();
@@ -56,24 +37,15 @@
         let lastEventId = 0;
         let resetTimer = null;
         let currentAddress = '';
-
-        function setStatus(text, locked = false) {
-            statusEl.textContent = text;
-            statusEl.className = locked ? 'locked' : '';
-            statusEl.style.display = 'flex';
-            mapFrame.style.display = 'none';
-        }
+        const DEFAULT_MAP_URL = 'https://www.google.com/maps?q=world&output=embed';
 
         function showMap(url) {
             mapFrame.src = url;
-            mapFrame.style.display = 'block';
-            statusEl.style.display = 'none';
         }
 
         function resetViewer() {
-            mapFrame.src = '';
+            mapFrame.src = DEFAULT_MAP_URL;
             currentAddress = '';
-            setStatus('Esperando ubicacion...');
         }
 
         function getLocationAddress(query) {
@@ -130,7 +102,6 @@
                 const response = await fetch(`/api/music-events?clientId=${clientId}&since=${sessionStartMs}&t=${Date.now()}`);
 
                 if (response.status === 409) {
-                    setStatus('Viewer en uso', true);
                     return;
                 }
 
@@ -145,17 +116,11 @@
                     const latest = newEvents[newEvents.length - 1];
                     lastEventId = latest.id;
                     handleLocationEvent(latest);
-                } else if (!mapFrame.src) {
-                    setStatus('Esperando ubicacion...');
                 }
-            } catch (_error) {
-                if (!mapFrame.src) {
-                    setStatus('Reconectando...');
-                }
-            }
+            } catch (_error) {}
         }
 
-        setStatus('Conectando...');
+        showMap(DEFAULT_MAP_URL);
         pollEvents();
         setInterval(pollEvents, 1000);
 
